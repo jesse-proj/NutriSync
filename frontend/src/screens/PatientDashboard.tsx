@@ -2,6 +2,8 @@
 import { useAuth } from '../context/AuthContext'
 import logoBrand from '../assets/logo_brand.png'
 import { Activity, User as UserIcon, LogOut, Heart, Calendar, Plus, Bot } from 'lucide-react'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
 
 const PatientDashboard = () => {
   const { user, logout } = useAuth()
@@ -20,14 +22,15 @@ const PatientDashboard = () => {
             <UserIcon className="h-4 w-4 text-primary" />
             <span className="font-label-md text-label-md text-on-surface font-semibold">{user?.full_name}</span>
           </div>
-          <button 
+          <Button 
             onClick={logout} 
-            className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+            variant="ghost"
+            className="flex items-center gap-2 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors"
             title="Log Out"
           >
             <LogOut className="h-4 w-4" />
             <span className="font-label-sm text-label-sm hidden sm:inline">Log out</span>
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -90,12 +93,12 @@ const PatientDashboard = () => {
 
           {/* Quick Actions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <button className="flex items-center justify-center gap-2 p-6 bg-white border border-outline-variant hover:border-primary rounded-xl shadow-sm text-primary font-bold text-center cursor-pointer transition-colors group">
+            <Button variant="outline" className="flex items-center justify-center gap-2 p-6 bg-white hover:border-primary rounded-xl shadow-sm text-primary font-bold text-center transition-colors group h-auto">
               <Plus className="h-5 w-5 group-hover:scale-110 transition-transform" /> Log a Meal Photo
-            </button>
-            <button className="flex items-center justify-center gap-2 p-6 bg-white border border-outline-variant hover:border-primary rounded-xl shadow-sm text-primary font-bold text-center cursor-pointer transition-colors group">
+            </Button>
+            <Button variant="outline" className="flex items-center justify-center gap-2 p-6 bg-white hover:border-primary rounded-xl shadow-sm text-primary font-bold text-center transition-colors group h-auto">
               <Calendar className="h-5 w-5 group-hover:scale-110 transition-transform" /> View Meal History
-            </button>
+            </Button>
           </div>
         </section>
 
@@ -121,12 +124,12 @@ const PatientDashboard = () => {
 
             {/* Input field */}
             <div className="mt-auto pt-4 border-t border-outline-variant flex gap-2">
-              <input 
+              <Input 
                 type="text" 
                 placeholder="Magtanong kay NutriGabay..." 
-                className="flex-grow px-3 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                className="flex-grow"
               />
-              <button className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer">Tampok</button>
+              <Button>Tampok</Button>
             </div>
           </div>
         </section>

@@ -2,6 +2,7 @@
 import { useAuth } from '../context/AuthContext'
 import logoBrand from '../assets/logo_brand.png'
 import { Users, LogOut, ShieldAlert } from 'lucide-react'
+import { Button } from '../components/ui/button'
 
 const ClinicianDashboard = () => {
   const { user, logout } = useAuth()
@@ -27,14 +28,15 @@ const ClinicianDashboard = () => {
             <Users className="h-4 w-4 text-primary" />
             <span className="font-label-md text-label-md text-on-surface font-semibold">Dr. {user?.full_name}</span>
           </div>
-          <button 
+          <Button 
             onClick={logout} 
-            className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+            variant="ghost"
+            className="flex items-center gap-2 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors"
             title="Log Out"
           >
             <LogOut className="h-4 w-4" />
             <span className="font-label-sm text-label-sm hidden sm:inline">Log out</span>
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -71,12 +73,12 @@ const ClinicianDashboard = () => {
                     {p.compliance}
                   </span>
                   <div className="flex gap-2">
-                    <button className="px-3 py-1 bg-surface-container hover:bg-outline-variant rounded-lg text-xs font-bold transition-all cursor-pointer">
+                    <Button variant="secondary" size="sm">
                       View Logs
-                    </button>
-                    <button className="px-3 py-1 bg-primary text-white hover:bg-primary-container rounded-lg text-xs font-bold transition-all cursor-pointer">
+                    </Button>
+                    <Button size="sm">
                       Edit Thresholds
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
