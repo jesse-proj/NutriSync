@@ -98,7 +98,7 @@ graph TD
 ## 4. Technical Architecture & Data Flow
 
 ### 4.1 System Components
-* **Frontend:** React (Vite) + Tailwind CSS + Shadcn UI. Fully responsive for mobile (Patients) and desktop (Clinicians).
+* **Frontend:** React + TypeScript (Vite) + Tailwind CSS + Shadcn UI. Fully responsive for mobile (Patients) and desktop (Clinicians).
 * **Backend:** Python + FastAPI. Fast, modern API framework with automatic OpenAPI documentation.
 * **Database:** PostgreSQL (for relational data: users, patient profiles, clinical targets, clinical alerts) + Vector Store (for RAG document chunks like clinical guidelines).
 * **AI Core:**

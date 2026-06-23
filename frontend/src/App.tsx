@@ -1,8 +1,9 @@
 import React from 'react'
+import { Button } from './components/ui/button'
 
 const App = () => {
   return (
-    <h1 className='text-xl text-amber-300'>meow</h1>
+    <Button><h1 className='text-xl text-amber-200'>qfqfewfqew</h1></Button>
   )
 }
 
