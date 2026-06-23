@@ -71,7 +71,6 @@ const LoginPage: React.FC = () => {
         </div>
         {/* Content on Image */}
         <div className="relative z-10 flex flex-col justify-end p-16 text-white">
-          <img className='h-34 w-50 mb-8' src={logoBrandDark} alt="NutriSync RPM Logo" />
           <h1 className="text-[2.6rem] leading-tight font-bold mb-4 max-w-lg">
             Caring for your health, wherever you are.
           </h1>
