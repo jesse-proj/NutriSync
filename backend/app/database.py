@@ -16,6 +16,7 @@ engine = create_engine(
 
 def create_db_and_tables() -> None:
     """Initialize database tables defined in SQLModel."""
+    import app.models  # Import all models to register with SQLModel
     SQLModel.metadata.create_all(engine)
 
 def get_session() -> Generator[Session, None, None]:
