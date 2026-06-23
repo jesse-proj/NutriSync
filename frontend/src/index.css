@@ -8,6 +8,32 @@
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
+
+    --color-primary: #0058bc;
+    --color-primary-container: #0070eb;
+    --color-on-primary: #ffffff;
+    --color-secondary: #006a66;
+    --color-secondary-container: #6df4ec;
+    --color-tertiary: #545c6f;
+    --color-tertiary-container: #6d7488;
+    --color-background: #f9f9ff;
+    --color-surface: #f9f9ff;
+    --color-surface-dim: #d0daf2;
+    --color-surface-bright: #f9f9ff;
+    --color-surface-container: #e8eeff;
+    --color-surface-container-low: #f0f3ff;
+    --color-surface-container-high: #dfe8ff;
+    --color-surface-container-highest: #d9e3fb;
+    --color-surface-container-lowest: #ffffff;
+    --color-on-surface: #111c2d;
+    --color-on-surface-variant: #414755;
+    --color-outline: #717786;
+    --color-outline-variant: #c1c6d7;
+    --color-error: #ba1a1a;
+    --color-error-container: #ffdad6;
+    --color-on-error: #ffffff;
+    --color-on-error-container: #93000a;
+
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
