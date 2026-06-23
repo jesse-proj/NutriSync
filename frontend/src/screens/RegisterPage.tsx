@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { User, Mail, Lock, ShieldCheck, ArrowRight, Shield, CheckCircle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import logoBrand from '../assets/logo_brand.png'
+import logoBrand from '../assets/nutrisync.png'
 
 const RegisterPage: React.FC = () => {
   const { register } = useAuth()
@@ -46,8 +46,8 @@ const RegisterPage: React.FC = () => {
         password
       })
       // Redirect to login with success message
-      navigate('/login', { 
-        state: { success: 'Account created successfully! Please log in.' } 
+      navigate('/login', {
+        state: { success: 'Account created successfully! Please log in.' }
       })
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.')
@@ -60,9 +60,7 @@ const RegisterPage: React.FC = () => {
     <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-radial from-[#e8eeff] to-[#f9f9ff]">
       <div className="w-full max-w-[500px] flex flex-col items-center">
         {/* Logo Section */}
-        <div className="mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <img alt="NutriSync Logo" className="h-16 w-auto object-contain" src={logoBrand} />
-        </div>
+        <img alt="NutriSync Logo" className="h-32 w-32 object-contain" draggable="false" src={logoBrand} />
 
         {/* Registration Card */}
         <section className="bg-white/90 backdrop-blur-md border border-white/50 shadow-lg w-full rounded-xl p-8 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-8 duration-1000">
@@ -74,12 +72,11 @@ const RegisterPage: React.FC = () => {
 
           {/* Role Selection Segmented Control */}
           <div className="bg-surface-container p-1 rounded-lg flex relative" id="role-selector">
-            <button 
-              className={`flex-1 py-2 text-label-md font-label-md rounded-md z-10 transition-all cursor-pointer ${
-                role === 'patient' 
-                  ? 'bg-primary text-white shadow-sm' 
-                  : 'text-on-surface-variant hover:text-on-surface'
-              }`}
+            <button
+              className={`flex-1 py-2 text-label-md font-label-md rounded-md z-10 transition-all cursor-pointer ${role === 'patient'
+                ? 'bg-primary text-white shadow-sm'
+                : 'text-on-surface-variant hover:text-on-surface'
+                }`}
               onClick={() => {
                 setRole('patient')
                 setError(null)
@@ -88,12 +85,11 @@ const RegisterPage: React.FC = () => {
             >
               Patient
             </button>
-            <button 
-              className={`flex-1 py-2 text-label-md font-label-md rounded-md z-10 transition-all cursor-pointer ${
-                role === 'clinician' 
-                  ? 'bg-primary text-white shadow-sm' 
-                  : 'text-on-surface-variant hover:text-on-surface'
-              }`}
+            <button
+              className={`flex-1 py-2 text-label-md font-label-md rounded-md z-10 transition-all cursor-pointer ${role === 'clinician'
+                ? 'bg-primary text-white shadow-sm'
+                : 'text-on-surface-variant hover:text-on-surface'
+                }`}
               onClick={() => {
                 setRole('clinician')
                 setError(null)
@@ -121,10 +117,10 @@ const RegisterPage: React.FC = () => {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
                   <User className="h-5 w-5" />
                 </span>
-                <input 
-                  className="w-full pl-10 pr-4 py-3 bg-surface-bright border border-outline-variant rounded-lg text-body-md font-body-md text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50" 
-                  id="fullName" 
-                  placeholder="Juan dela Cruz" 
+                <input
+                  className="w-full pl-10 pr-4 py-3 bg-surface-bright border border-outline-variant rounded-lg text-body-md font-body-md text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50"
+                  id="fullName"
+                  placeholder="Juan dela Cruz"
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
@@ -142,10 +138,10 @@ const RegisterPage: React.FC = () => {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
                   <Mail className="h-5 w-5" />
                 </span>
-                <input 
-                  className="w-full pl-10 pr-4 py-3 bg-surface-bright border border-outline-variant rounded-lg text-body-md font-body-md text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50" 
-                  id="email" 
-                  placeholder="name@company.com" 
+                <input
+                  className="w-full pl-10 pr-4 py-3 bg-surface-bright border border-outline-variant rounded-lg text-body-md font-body-md text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50"
+                  id="email"
+                  placeholder="name@company.com"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -164,10 +160,10 @@ const RegisterPage: React.FC = () => {
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
                     <Lock className="h-5 w-5" />
                   </span>
-                  <input 
-                    className="w-full pl-10 pr-4 py-3 bg-surface-bright border border-outline-variant rounded-lg text-body-md font-body-md text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50" 
-                    id="password" 
-                    placeholder="••••••••" 
+                  <input
+                    className="w-full pl-10 pr-4 py-3 bg-surface-bright border border-outline-variant rounded-lg text-body-md font-body-md text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50"
+                    id="password"
+                    placeholder="••••••••"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -183,10 +179,10 @@ const RegisterPage: React.FC = () => {
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
                     <ShieldCheck className="h-5 w-5" />
                   </span>
-                  <input 
-                    className="w-full pl-10 pr-4 py-3 bg-surface-bright border border-outline-variant rounded-lg text-body-md font-body-md text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50" 
-                    id="confirmPassword" 
-                    placeholder="••••••••" 
+                  <input
+                    className="w-full pl-10 pr-4 py-3 bg-surface-bright border border-outline-variant rounded-lg text-body-md font-body-md text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50"
+                    id="confirmPassword"
+                    placeholder="••••••••"
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -200,9 +196,9 @@ const RegisterPage: React.FC = () => {
             {role === 'patient' && (
               <div className="flex items-start gap-3 mt-1">
                 <div className="flex items-center h-5">
-                  <input 
-                    className="w-5 h-5 text-primary border-outline-variant rounded focus:ring-primary-container cursor-pointer transition-colors" 
-                    id="privacy" 
+                  <input
+                    className="w-5 h-5 text-primary border-outline-variant rounded focus:ring-primary-container cursor-pointer transition-colors"
+                    id="privacy"
                     type="checkbox"
                     checked={consent}
                     onChange={(e) => setConsent(e.target.checked)}
@@ -215,8 +211,8 @@ const RegisterPage: React.FC = () => {
             )}
 
             {/* Submit Action */}
-            <button 
-              className="w-full mt-4 bg-primary hover:bg-primary-container text-white font-bold py-3.5 rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-50" 
+            <button
+              className="w-full mt-4 bg-primary hover:bg-primary-container text-white font-bold py-3.5 rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-50"
               type="submit"
               disabled={loading}
             >
@@ -230,7 +226,7 @@ const RegisterPage: React.FC = () => {
           {/* Footer Login Link */}
           <div className="text-center pt-2">
             <p className="text-label-md font-label-md text-on-surface-variant">
-              Already have an account? 
+              Already have an account?
               <Link className="text-primary font-bold hover:underline ml-1" to="/login">
                 Log in
               </Link>

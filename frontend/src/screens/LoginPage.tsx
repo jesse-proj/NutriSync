@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Fingerprint, Type } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import logoBrand from '../assets/logo_brand.png'
+import logoBrand from '../assets/nutrisync.png'
 import doctorConsultation from '../assets/doctor_consultation.jpg'
 import avatarDoctor from '../assets/avatar_doctor.jpg'
 import avatarPatient from '../assets/avatar_patient.jpg'
@@ -71,13 +71,12 @@ const LoginPage: React.FC = () => {
   }
 
   return (
-    <main className={`flex min-h-screen w-full select-none text-on-surface ${
-      textSize === 'large' ? 'scale-102 transition-transform' : textSize === 'xlarge' ? 'scale-105 transition-transform' : ''
-    }`}>
+    <main className={`flex min-h-screen w-full select-none text-on-surface ${textSize === 'large' ? 'scale-102 transition-transform' : textSize === 'xlarge' ? 'scale-105 transition-transform' : ''
+      }`}>
       {/* Left Side: Visual/Contextual Brand Section */}
       <section className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-primary">
         {/* Background Image with Overlay */}
-        <div 
+        <div
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${doctorConsultation})` }}
         >
@@ -91,24 +90,6 @@ const LoginPage: React.FC = () => {
           <p className="font-body-lg text-body-lg text-white/90 max-w-md">
             Join thousands of patients and healthcare providers using NutriSync RPM for precise, intelligent nutritional monitoring.
           </p>
-          {/* Trust Indicator */}
-          <div className="mt-12 flex items-center gap-4">
-            <div className="flex -space-x-3">
-              <div 
-                className="w-10 h-10 rounded-full border-2 border-white bg-cover bg-center"
-                style={{ backgroundImage: `url(${avatarDoctor})` }}
-              ></div>
-              <div 
-                className="w-10 h-10 rounded-full border-2 border-white bg-cover bg-center" 
-                style={{ backgroundImage: `url(${avatarPatient})` }}
-              ></div>
-              <div 
-                className="w-10 h-10 rounded-full border-2 border-white bg-cover bg-center" 
-                style={{ backgroundImage: `url(${avatarNurse})` }}
-              ></div>
-            </div>
-            <span className="font-label-sm text-label-sm text-white/80">Trusted by 500+ clinics nationwide</span>
-          </div>
         </div>
       </section>
 
@@ -116,9 +97,7 @@ const LoginPage: React.FC = () => {
       <section className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 md:p-20 bg-surface">
         <div className="w-full max-w-[440px] flex flex-col items-center min-h-[600px]">
           {/* Brand Anchor: Logo */}
-          <div className="mb-8 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <img alt="NutriSync RPM Logo" className="h-16 w-auto object-contain" src={logoBrand} />
-          </div>
+          <img alt="NutriSync RPM Logo" className="h-32 w-32 object-contain" draggable="false" src={logoBrand} />
 
           {/* Form Header */}
           <div className="text-center mb-8">
@@ -143,11 +122,11 @@ const LoginPage: React.FC = () => {
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-outline">
                   <Mail className="h-5 w-5" />
                 </span>
-                <input 
+                <input
                   className={`w-full h-[52px] pl-12 pr-4 rounded-lg border border-outline-variant bg-white text-on-surface focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none placeholder:text-outline/50 ${getTextClass()}`}
-                  id="email" 
-                  name="email" 
-                  placeholder="name@healthcare.ph" 
+                  id="email"
+                  name="email"
+                  placeholder="name@healthcare.ph"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -170,18 +149,18 @@ const LoginPage: React.FC = () => {
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-outline">
                   <Lock className="h-5 w-5" />
                 </span>
-                <input 
+                <input
                   className={`w-full h-[52px] pl-12 pr-12 rounded-lg border border-outline-variant bg-white text-on-surface focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none placeholder:text-outline/50 ${getTextClass()}`}
-                  id="password" 
-                  name="password" 
-                  placeholder="••••••••" 
+                  id="password"
+                  name="password"
+                  placeholder="••••••••"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-                <button 
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors" 
+                <button
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors"
                   type="button"
                   onClick={togglePasswordVisibility}
                 >
@@ -191,8 +170,8 @@ const LoginPage: React.FC = () => {
             </div>
 
             {/* Action Button */}
-            <button 
-              className="w-full h-[52px] bg-primary text-white font-label-md text-label-md rounded-lg flex items-center justify-center gap-2 shadow-sm hover:bg-primary-container transition-all active:scale-[0.98] duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
+            <button
+              className="w-full h-[52px] bg-primary text-white font-label-md text-label-md rounded-lg flex items-center justify-center gap-2 shadow-sm hover:bg-primary-container transition-all active:scale-[0.98] duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               type="submit"
               disabled={loading}
             >
@@ -208,8 +187,8 @@ const LoginPage: React.FC = () => {
             </div>
 
             {/* Biometric Login Option */}
-            <button 
-              className="w-full h-[52px] border border-outline-variant bg-white text-on-surface font-label-md text-label-md rounded-lg flex items-center justify-center gap-3 hover:bg-surface-container-low transition-colors active:scale-[0.98] cursor-pointer" 
+            <button
+              className="w-full h-[52px] border border-outline-variant bg-white text-on-surface font-label-md text-label-md rounded-lg flex items-center justify-center gap-3 hover:bg-surface-container-low transition-colors active:scale-[0.98] cursor-pointer"
               type="button"
               onClick={() => alert('Biometric login is not available on this device.')}
             >
@@ -221,7 +200,7 @@ const LoginPage: React.FC = () => {
           {/* Footer Link */}
           <div className="mt-8 text-center">
             <p className="font-body-md text-body-md text-on-surface-variant">
-              Don't have an account? 
+              Don't have an account?
               <Link className="text-primary font-label-md hover:underline ml-1" to="/register">
                 Sign up
               </Link>
@@ -230,7 +209,7 @@ const LoginPage: React.FC = () => {
 
           {/* Accessibility: Text Size Toggle */}
           <div className="mt-auto pt-10 flex items-center gap-4">
-            <button 
+            <button
               className="p-2 rounded-full hover:bg-surface-container text-on-surface-variant flex items-center gap-2 transition-colors cursor-pointer"
               title="Text Accessibility"
               onClick={handleAdjustTextSize}
