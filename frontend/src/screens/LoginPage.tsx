@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Fingerprint, Type } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react'
+import GoogleIcon from '../components/ui/GoogleIcon'
 import { useAuth } from '../context/AuthContext'
 import logoBrand from '../assets/nutrisync.png'
+import logoBrandDark from '../assets/nutrisync-darkmode.png'
 import doctorConsultation from '../assets/doctor_consultation.jpg'
 import avatarDoctor from '../assets/avatar_doctor.jpg'
 import avatarPatient from '../assets/avatar_patient.jpg'
@@ -17,7 +19,7 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [textSize, setTextSize] = useState<'normal' | 'large' | 'xlarge'>('normal')
+
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword)
@@ -54,25 +56,10 @@ const LoginPage: React.FC = () => {
     }
   }
 
-  const handleAdjustTextSize = () => {
-    if (textSize === 'normal') {
-      setTextSize('large')
-    } else if (textSize === 'large') {
-      setTextSize('xlarge')
-    } else {
-      setTextSize('normal')
-    }
-  }
 
-  const getTextClass = () => {
-    if (textSize === 'large') return 'text-[18px]'
-    if (textSize === 'xlarge') return 'text-[20px]'
-    return 'text-[16px]'
-  }
 
   return (
-    <main className={`flex min-h-screen w-full select-none text-on-surface ${textSize === 'large' ? 'scale-102 transition-transform' : textSize === 'xlarge' ? 'scale-105 transition-transform' : ''
-      }`}>
+    <main className="flex h-screen w-full overflow-hidden select-none text-on-surface">
       {/* Left Side: Visual/Contextual Brand Section */}
       <section className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-primary">
         {/* Background Image with Overlay */}
@@ -83,47 +70,49 @@ const LoginPage: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-tr from-primary/80 to-primary/20"></div>
         </div>
         {/* Content on Image */}
-        <div className="relative z-10 flex flex-col justify-end p-20 text-white">
-          <h1 className="font-headline-xl text-headline-xl mb-4 max-w-lg">
+        <div className="relative z-10 flex flex-col justify-end p-16 text-white">
+          <img className='h-34 w-50 mb-8' src={logoBrandDark} alt="NutriSync RPM Logo" />
+          <h1 className="text-[2.6rem] leading-tight font-bold mb-4 max-w-lg">
             Caring for your health, wherever you are.
           </h1>
-          <p className="font-body-lg text-body-lg text-white/90 max-w-md">
+          <p className="text-[0.95rem] leading-relaxed text-white/85 max-w-sm">
             Join thousands of patients and healthcare providers using NutriSync RPM for precise, intelligent nutritional monitoring.
           </p>
         </div>
       </section>
 
       {/* Right Side: Login Form Canvas */}
-      <section className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 md:p-20 bg-surface">
-        <div className="w-full max-w-[440px] flex flex-col items-center min-h-[600px]">
+      <section className="w-full lg:w-1/2 flex flex-col items-center justify-center px-6 py-4 md:px-16 bg-surface overflow-hidden">
+        <div className="w-full max-w-[400px] flex flex-col items-center">
           {/* Brand Anchor: Logo */}
-          <img alt="NutriSync RPM Logo" className="h-32 w-32 object-contain" draggable="false" src={logoBrand} />
+          <img alt="NutriSync RPM Logo" className="h-36 w-36 object-contain mb-3" draggable="false" src={logoBrand} />
 
           {/* Form Header */}
-          <div className="text-center mb-8">
-            <h2 className="font-headline-md text-headline-md text-on-surface mb-2">Welcome to NutriSync RPM</h2>
-            <p className="font-body-md text-body-md text-on-surface-variant">Intelligent monitoring for your nutritional health</p>
+          <div className="text-center mb-5">
+            <h2 className="font-headline-sm text-headline-sm text-on-surface mb-1">Welcome to NutriSync RPM!</h2>
+            <p className="font-body-sm text-body-sm text-on-surface-variant">Intelligent monitoring for your nutritional health</p>
+            <div className="flex-grow border-t border-outline-variant"></div>
           </div>
 
           {error && (
-            <div className="w-full p-4 mb-4 text-sm text-red-800 bg-red-50 rounded-lg border border-red-200" role="alert">
+            <div className="w-full p-3 mb-3 text-sm text-red-800 bg-red-50 rounded-lg border border-red-200" role="alert">
               {error}
             </div>
           )}
 
           {/* Login Form */}
-          <form className="w-full space-y-6" onSubmit={handleSubmit}>
+          <form className="w-full space-y-4" onSubmit={handleSubmit}>
             {/* Email Field */}
-            <div className="space-y-2">
-              <label className="font-label-md text-label-md text-on-surface-variant ml-1" htmlFor="email">
+            <div className="space-y-1">
+              <label className="font-label-sm text-label-sm text-on-surface-variant ml-1" htmlFor="email">
                 Email Address
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-outline">
-                  <Mail className="h-5 w-5" />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
+                  <Mail className="h-4 w-4" />
                 </span>
                 <input
-                  className={`w-full h-[52px] pl-12 pr-4 rounded-lg border border-outline-variant bg-white text-on-surface focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none placeholder:text-outline/50 ${getTextClass()}`}
+                  className="w-full h-[44px] pl-10 pr-4 rounded-lg border border-outline-variant bg-white text-on-surface focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none placeholder:text-outline/50 text-sm"
                   id="email"
                   name="email"
                   placeholder="name@healthcare.ph"
@@ -136,9 +125,9 @@ const LoginPage: React.FC = () => {
             </div>
 
             {/* Password Field */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <div className="flex justify-between items-center px-1">
-                <label className="font-label-md text-label-md text-on-surface-variant" htmlFor="password">
+                <label className="font-label-sm text-label-sm text-on-surface-variant" htmlFor="password">
                   Password
                 </label>
                 <a className="font-label-sm text-label-sm text-primary hover:underline transition-all" href="#">
@@ -146,11 +135,11 @@ const LoginPage: React.FC = () => {
                 </a>
               </div>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-outline">
-                  <Lock className="h-5 w-5" />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
+                  <Lock className="h-4 w-4" />
                 </span>
                 <input
-                  className={`w-full h-[52px] pl-12 pr-12 rounded-lg border border-outline-variant bg-white text-on-surface focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none placeholder:text-outline/50 ${getTextClass()}`}
+                  className="w-full h-[44px] pl-10 pr-10 rounded-lg border border-outline-variant bg-white text-on-surface focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none placeholder:text-outline/50 text-sm"
                   id="password"
                   name="password"
                   placeholder="••••••••"
@@ -160,46 +149,46 @@ const LoginPage: React.FC = () => {
                   required
                 />
                 <button
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors"
                   type="button"
                   onClick={togglePasswordVisibility}
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
             {/* Action Button */}
             <button
-              className="w-full h-[52px] bg-primary text-white font-label-md text-label-md rounded-lg flex items-center justify-center gap-2 shadow-sm hover:bg-primary-container transition-all active:scale-[0.98] duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-[44px] bg-primary text-white font-label-md text-label-md rounded-lg flex items-center justify-center gap-2 shadow-sm hover:bg-primary-container transition-all active:scale-[0.98] duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               type="submit"
               disabled={loading}
             >
               {loading ? 'Logging in...' : 'Login'}
-              {!loading && <ArrowRight className="h-5 w-5" />}
+              {!loading && <ArrowRight className="h-4 w-4" />}
             </button>
 
             {/* Divider */}
-            <div className="relative flex items-center py-2">
+            <div className="relative flex items-center py-1">
               <div className="flex-grow border-t border-outline-variant"></div>
-              <span className="flex-shrink mx-4 text-outline font-label-sm text-label-sm">OR</span>
+              <span className="flex-shrink mx-3 text-outline font-label-sm text-label-sm text-xs">OR</span>
               <div className="flex-grow border-t border-outline-variant"></div>
             </div>
 
-            {/* Biometric Login Option */}
+            {/* Google Login Option */}
             <button
-              className="w-full h-[52px] border border-outline-variant bg-white text-on-surface font-label-md text-label-md rounded-lg flex items-center justify-center gap-3 hover:bg-surface-container-low transition-colors active:scale-[0.98] cursor-pointer"
+              className="w-full h-[44px] border border-outline-variant bg-white text-on-surface font-label-md text-label-md rounded-lg flex items-center justify-center gap-3 hover:bg-surface-container-low transition-colors active:scale-[0.98] cursor-pointer text-sm"
               type="button"
-              onClick={() => alert('Biometric login is not available on this device.')}
+              onClick={() => alert('Google login is not yet available.')}
             >
-              <Fingerprint className="h-5 w-5 text-primary" />
-              Biometric Login
+              <GoogleIcon className="h-4 w-4" />
+              Continue with Google
             </button>
           </form>
 
           {/* Footer Link */}
-          <div className="mt-8 text-center">
-            <p className="font-body-md text-body-md text-on-surface-variant">
+          <div className="mt-5 text-center">
+            <p className="font-body-sm text-body-sm text-on-surface-variant">
               Don't have an account?
               <Link className="text-primary font-label-md hover:underline ml-1" to="/register">
                 Sign up
@@ -207,19 +196,6 @@ const LoginPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Accessibility: Text Size Toggle */}
-          <div className="mt-auto pt-10 flex items-center gap-4">
-            <button
-              className="p-2 rounded-full hover:bg-surface-container text-on-surface-variant flex items-center gap-2 transition-colors cursor-pointer"
-              title="Text Accessibility"
-              onClick={handleAdjustTextSize}
-            >
-              <Type className="h-5 w-5" />
-              <span className="font-label-sm text-label-sm">
-                Text Size: <span className="font-bold uppercase text-primary">{textSize}</span>
-              </span>
-            </button>
-          </div>
         </div>
       </section>
     </main>
