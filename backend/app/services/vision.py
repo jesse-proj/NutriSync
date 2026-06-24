@@ -1,4 +1,5 @@
 import io
+import json
 import base64
 from typing import Optional
 from PIL import Image
@@ -37,9 +38,10 @@ class GroqVisionProvider:
 
         return result, "image/jpeg"
 
-    def analyze(self, image_bytes: bytes, mime_type: str = "image/jpeg") -> str:
+    def analyze(self, image_bytes: bytes, mime_type: str = "image/jpeg") -> list[dict]:
         """
-        Analyze a food image and return a natural language description.
+        Analyze a food image and return a list of food segments with nutritional info.
+        Each segment: {"name": str, "nutritional_info": {"calories": float, "macronutrients": {"carbohydrates": float, "proteins": float, "fat": float}, "micronutrients": {"sodium": float, "potassium": float}}}
         """
         image_bytes, mime_type = self.compress_image(image_bytes)
         b64_image = base64.b64encode(image_bytes).decode("utf-8")
@@ -53,10 +55,10 @@ class GroqVisionProvider:
                         {
                             "type": "text",
                             "text": (
-                                "Analyze this food image. Provide a concise, natural language description of the "
-                                "dishes and ingredients shown, including an estimated portion size. "
-                                "For example: '1 bowl of pork sinigang', '200g of grilled salmon with 1 cup of white rice'. "
-                                "Return ONLY the text description without any markdown, explanations, or JSON formatting."
+                                "Analyze this food image. Identify each dish/ingredient and estimate its nutritional content.\n"
+                                "Return a JSON array of objects with this structure:\n"
+                                '[{"name": "1 bowl of pork sinigang", "nutritional_info": {"calories": 350, "macronutrients": {"carbohydrates": 45, "proteins": 25, "fat": 12}, "micronutrients": {"sodium": 800, "potassium": 600}}]\n'
+                                "Return ONLY the JSON array, no markdown, no explanations."
                             ),
                         },
                         {
@@ -69,10 +71,17 @@ class GroqVisionProvider:
                 }
             ],
             temperature=0.0,
-            max_tokens=256,
+            max_tokens=512,
         )
 
-        return response.choices[0].message.content.strip()
+        raw = response.choices[0].message.content.strip()
+        # Strip markdown code fences if present
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+            if raw.endswith("```"):
+                raw = raw[:-3]
+            raw = raw.strip()
+        return json.loads(raw)
 
 def get_vision_provider() -> GroqVisionProvider:
     """Factory: returns the Groq vision provider for text descriptions."""

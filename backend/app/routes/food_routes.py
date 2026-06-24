@@ -37,11 +37,11 @@ async def log_food_photo(
     # Step 1: Analyze image using Groq vision provider
     vision = get_vision_provider()
     try:
-        dish_description = vision.analyze(file_bytes, mime_type)
+        segments = vision.analyze(file_bytes, mime_type)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Vision API Error: {str(e)}")
 
-    if not dish_description or len(dish_description) < 3:
+    if not segments:
         raise HTTPException(status_code=400, detail="Could not identify food in the image.")
 
     # Aggregate nutritional info
@@ -73,13 +73,13 @@ async def log_food_photo(
     # Save to database
     new_log = FoodLogs(
         patient_id=current_user.id,
-        description=dish_description,
-        calories_kcal=nutrients.calories,
-        carbs_g=nutrients.carbs,
-        protein_g=nutrients.protein,
-        fat_g=nutrients.fat,
-        sodium_mg=nutrients.sodium,
-        potassium_mg=nutrients.potassium
+        description=final_description,
+        calories_kcal=total_calories,
+        carbs_g=total_carbs,
+        protein_g=total_proteins,
+        fat_g=total_fat,
+        sodium_mg=total_sodium,
+        potassium_mg=total_potassium
     )
     
     session.add(new_log)

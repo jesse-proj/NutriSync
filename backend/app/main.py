@@ -23,7 +23,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configure CORS middleware
+# Register routes
+app.include_router(auth_router, prefix="/api")
+app.include_router(patient_router, prefix="/api")
+app.include_router(clinician_router, prefix="/api")
+app.include_router(food_router, prefix="/api")
+app.include_router(chat_router, prefix="/api")
+
+# Configure CORS middleware — must be last so it wraps all routes as the outermost layer
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -31,13 +38,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Register routes
-app.include_router(auth_router, prefix="/api")
-app.include_router(patient_router, prefix="/api")
-app.include_router(clinician_router, prefix="/api")
-app.include_router(food_router, prefix="/api")
-app.include_router(chat_router, prefix="/api")
 
 @app.get("/", tags=["Health Check"])
 def health_check():
