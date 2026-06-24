@@ -25,8 +25,9 @@ class Settings(BaseSettings):
     # Groq API key for vision model (food image analysis)
     GROQ_API_KEY_TWO: str = ""
 
-    # LogMeal API
-    LOGMEAL_API_KEY: str = ""
+    # Edamam API
+    EDAMAM_APP_ID: str = ""
+    EDAMAM_APP_KEY: str = ""
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

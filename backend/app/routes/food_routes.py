@@ -6,7 +6,7 @@ from app.database import get_session
 from app.models import User, UserRole, FoodLogs
 from app.auth import get_current_user
 from app.services.vision import get_vision_provider
-
+from app.services.nutrition import EdamamNutritionProvider
 router = APIRouter(prefix="/food", tags=["Food Logs"])
 
 def get_current_patient(current_user: User = Depends(get_current_user)):
@@ -34,18 +34,21 @@ async def log_food_photo(
     file_bytes = await file.read()
     mime_type = file.content_type or "image/jpeg"
 
-    # Analyze image using configured vision provider
+    # Step 1: Analyze image using Groq vision provider
     vision = get_vision_provider()
     try:
-        result = vision.analyze(file_bytes, mime_type)
+        dish_description = vision.analyze(file_bytes, mime_type)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Vision API Error: {str(e)}")
 
-    segments = result.get("segments", [])
-    if not segments:
-        raw = result.get("raw_content", "None")
-        raise HTTPException(status_code=400, detail=f"No food detected in the image. Raw response: {raw}")
+    if not dish_description or len(dish_description) < 3:
+        raise HTTPException(status_code=400, detail="Could not identify food in the image.")
 
+<<<<<<< HEAD
+    # Step 2: Retrieve nutritional data from Edamam
+    nutrition_service = EdamamNutritionProvider()
+    nutrients = nutrition_service.analyze(dish_description)
+=======
     # Aggregate nutritional info
     dish_names = []
     total_calories = 0.0
@@ -71,17 +74,18 @@ async def log_food_photo(
         total_potassium += micronutrients.get("potassium") or 0.0
 
     final_description = ", ".join(dish_names) if dish_names else "Unknown Food"
+>>>>>>> 6d9a54b9c8d161011490396251bfa6513e01da13
 
     # Save to database
     new_log = FoodLogs(
         patient_id=current_user.id,
-        description=final_description,
-        sodium_mg=total_sodium,
-        carbs_g=total_carbs,
-        calories_kcal=total_calories,
-        potassium_mg=total_potassium,
-        protein_g=total_proteins,
-        fat_g=total_fat,
+        description=dish_description,
+        calories_kcal=nutrients.calories,
+        carbs_g=nutrients.carbs,
+        protein_g=nutrients.protein,
+        fat_g=nutrients.fat,
+        sodium_mg=nutrients.sodium,
+        potassium_mg=nutrients.potassium
     )
     
     session.add(new_log)
