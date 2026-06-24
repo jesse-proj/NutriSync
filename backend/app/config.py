@@ -3,9 +3,9 @@ from typing import List, Union
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
 
+
 class Settings(BaseSettings):
     # JWT authentication settings
-    # In production, this MUST be a strong, randomly generated secret key.
     SECRET_KEY: str = "dev-secret-key-nutrisync-rpm-1234567890-secure"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
@@ -13,15 +13,17 @@ class Settings(BaseSettings):
     # Database configuration
     DATABASE_URL: str = "sqlite:///./nutrisync.db"
 
-    # CORS Configuration for decoupled React frontend
-    # Comma-separated list in env vars, converted to a list of strings
+    # CORS Configuration
     CORS_ORIGINS: Union[str, List[str]] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
 
-    # Groq API
+    # Groq API key for chatbot (existing)
     GROQ_API_KEY: str = ""
+
+    # Groq API key for vision model (food image analysis)
+    GROQ_API_KEY_TWO: str = ""
 
     # LogMeal API
     LOGMEAL_API_KEY: str = ""
@@ -36,10 +38,14 @@ class Settings(BaseSettings):
         return ["http://localhost:5173", "http://127.0.0.1:5173"]
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            ".env",
+        ),
         env_file_encoding="utf-8",
         case_sensitive=True,
-        extra="ignore"
+        extra="ignore",
     )
+
 
 settings = Settings()

@@ -46,3 +46,4 @@ bcrypt
 pyjwt
 pillow
 requests
+groq
