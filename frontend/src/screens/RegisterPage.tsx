@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, Mail, Lock, ShieldCheck, ArrowRight, Shield, CheckCircle } from 'lucide-react'
+import { User, Mail, Lock, ShieldCheck, ArrowRight } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import logoBrand from '../assets/nutrisync.png'
 

@@ -4,11 +4,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react'
 import GoogleIcon from '../components/ui/GoogleIcon'
 import { useAuth } from '../context/AuthContext'
 import logoBrand from '../assets/nutrisync.png'
-import logoBrandDark from '../assets/nutrisync-darkmode.png'
 import doctorConsultation from '../assets/doctor_consultation.jpg'
-import avatarDoctor from '../assets/avatar_doctor.jpg'
-import avatarPatient from '../assets/avatar_patient.jpg'
-import avatarNurse from '../assets/avatar_nurse.jpg'
 
 const LoginPage: React.FC = () => {
   const { login } = useAuth()
@@ -88,7 +84,7 @@ const LoginPage: React.FC = () => {
 
           {/* Form Header */}
           <div className="text-center mb-5">
-            <h2 className="font-headline-sm text-headline-sm text-on-surface mb-1">Welcome to NutriSync RPM!</h2>
+            <h2 className="font-headline-sm text-headline-sm text-on-surface mb-1">Welcome to NutriSync!</h2>
             <p className="font-body-sm text-body-sm text-on-surface-variant">Intelligent monitoring for your nutritional health</p>
             <div className="flex-grow border-t border-outline-variant"></div>
           </div>
