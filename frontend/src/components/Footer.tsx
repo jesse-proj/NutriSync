@@ -4,7 +4,7 @@ const Footer = () => {
   return (
     <footer className="w-full bg-surface-container-low border-t border-outline-variant/50">
       <div className="flex flex-col items-center py-8 px-6 w-full max-w-7xl mx-auto text-center gap-4">
-        <span className="text-sm font-bold text-primary">NutriSync RPM</span>
+        <span className="text-sm font-bold text-primary">NutriSync</span>
         <div className="flex gap-6">
           <a className="text-on-surface-variant hover:text-secondary text-xs transition-all" href="#">Privacy Policy</a>
           <a className="text-on-surface-variant hover:text-secondary text-xs transition-all" href="#">Terms of Service</a>

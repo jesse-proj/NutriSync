@@ -1,21 +1,16 @@
-import { useAuth } from '../context/AuthContext'
-import { Link } from 'react-router-dom'
 import {
-  Bell,
-  LogOut,
   Download,
   TrendingDown,
   CheckCircle
 } from 'lucide-react'
-import { Button } from '../components/ui/button'
 import { ScrollArea, ScrollBar } from '../components/ui/scroll-area'
-import logoBrand from '../assets/nutrisync.png'
 import Footer from '../components/Footer'
+import PatientNavbar from '../components/PatientNavbar'
+import { Button } from '@/components/ui/button'
 
 // ponytail: Reports.tsx uses simple native SVG and Tailwind divs for charts to keep it minimal and dependency-free
 
 const Reports = () => {
-  const { user, logout } = useAuth()
 
   const weeklyData = [
     { day: 'Mon', calories: 85, sodium: 70 },
@@ -53,51 +48,7 @@ const Reports = () => {
 
   return (
     <div className="min-h-screen bg-background text-on-surface flex flex-col font-sans relative">
-      {/* Top Navigation Bar */}
-      <header className="w-full top-0 sticky z-40 bg-surface shadow-sm border-b border-outline-variant">
-        <nav className="flex justify-between items-center h-16 px-6 max-w-7xl mx-auto">
-          <div className="flex items-center gap-8">
-            <Link to="/patient/dashboard" className="text-xl font-bold text-primary flex items-center gap-2">
-              <img src={logoBrand} className="h-12 w-17" alt="logo" />
-            </Link>
-            <div className="hidden md:flex gap-6 items-center">
-              <Link className="text-on-surface-variant hover:text-primary transition-colors text-sm" to="/patient/dashboard">Home</Link>
-              <Link className="text-primary font-semibold border-b-2 border-primary pb-1 text-sm transition-all" to="/patient/reports">Reports</Link>
-              <Link className="text-on-surface-variant hover:text-primary transition-colors text-sm" to="/patient/goals">Goals</Link>
-              <Link className="text-on-surface-variant hover:text-primary transition-colors text-sm" to="/patient/profile">Profile</Link>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <button className="p-2 rounded-full hover:bg-surface-container transition-all text-primary relative" title="Notifications">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-error rounded-full ring-2 ring-surface"></span>
-            </button>
-
-            {/* Logged in User Profile Info */}
-            <div className="flex items-center gap-3 pl-2 border-l border-outline-variant">
-              <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-primary shrink-0">
-                <img
-                  className="w-full h-full object-cover"
-                  alt="User avatar"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuChyJbiyPfsDfDICSP9EQpQ8xiACr-qDj8oMdPFQJ66o-FT-lsIsbrc5AB2MiOyGMwdToeG1GWRvfI0fc9QqLg4WayK8_M0W93MWQDK8semZzAhp27x4cqqMnmtt5dEacY4DkPYSjk6qJRa7Sn8VBla5E7RJwTAaMkwcYXejeI7NnndBQnA1qG7YCs8zupCop2nK_V5hFl_6rwNOSV7KDzUdaxMU7ln-CJKgIjNXStTdvy4LpFEj-gxUIIghQIEE6o5Zg5EPKA7sQ"
-                />
-              </div>
-              <div className="hidden sm:block text-left">
-                <p className="text-xs text-on-surface font-semibold">{user?.full_name}</p>
-                <p className="text-[10px] text-on-surface-variant">Patient</p>
-              </div>
-              <Button
-                onClick={logout}
-                variant="ghost"
-                className="p-2 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors ml-1"
-                title="Log Out"
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </nav>
-      </header>
+      <PatientNavbar activePage="reports" />
 
       {/* Main Content */}
       <ScrollArea className="flex-grow w-full">
