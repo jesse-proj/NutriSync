@@ -9,6 +9,6 @@ By connecting patients and clinicians directly, the platform makes remote dietar
 * **[Product Requirement Document (PRD)](file:///c:/Users/Trevor/Documents/CreateConquer/Create-Conquer/PRD.md):** Detailed product specifications, user personas, MoSCoW prioritization, technical architectures, and roadmap.
 
 ### Project Structure
-* `/frontend`: React application initialized with Vite, Tailwind CSS, and Shadcn UI.
-* `/backend`: Python application powered by FastAPI, set up with Uvicorn and Pydantic.
+* `/frontend`: React + TypeScript application initialized with Vite, Tailwind CSS, and Shadcn UI.
+* `/backend`: Python application powered by FastAPI, set up with Uvicorn, SQLAlchemy, and Pydantic.
 

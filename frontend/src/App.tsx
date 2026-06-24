@@ -5,6 +5,7 @@ import LoginPage from './screens/LoginPage'
 import RegisterPage from './screens/RegisterPage'
 import PatientDashboard from './screens/PatientDashboard'
 import ClinicianDashboard from './screens/ClinicianDashboard'
+import LandingPage from './screens/LandingPage'
 
 const App = () => {
   return (
@@ -12,6 +13,7 @@ const App = () => {
       <BrowserRouter>
         <Routes>
           {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           
@@ -36,7 +38,7 @@ const App = () => {
           />
           
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
