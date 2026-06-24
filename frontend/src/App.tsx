@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { TooltipProvider } from './components/ui/tooltip'
 import { AuthProvider } from './context/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import LoginPage from './screens/LoginPage'
@@ -9,6 +10,7 @@ import LandingPage from './screens/LandingPage'
 
 const App = () => {
   return (
+    <TooltipProvider>
     <AuthProvider>
       <BrowserRouter>
         <Routes>
@@ -42,6 +44,7 @@ const App = () => {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </TooltipProvider>
   )
 }
 
