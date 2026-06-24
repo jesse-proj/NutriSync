@@ -145,20 +145,43 @@ class GroqVisionProvider(VisionProvider):
     def _parse_response(self, content: str) -> dict:
         """Parse the Groq model text output into the standard schema."""
         import json
+        import re
 
         text = content.strip()
+        
+        # Sometimes models forget the final closing brackets, or markdown blocks.
+        # We try stripping markdown first
         if text.startswith("```"):
             lines = text.split("\n")
-            text = "\n".join(lines[1:-1])
+            if len(lines) >= 3:
+                text = "\n".join(lines[1:-1]).strip()
 
-        try:
-            data = json.loads(text)
-            if "segments" in data:
-                return data
-        except json.JSONDecodeError:
-            pass
+        # Try multiple suffix combinations in case the JSON is truncated
+        suffixes_to_try = ["", "}", "]}", "}]}"]
+        
+        # Try parsing the text directly first (with suffixes)
+        for suffix in suffixes_to_try:
+            try:
+                data = json.loads(text + suffix)
+                if "segments" in data:
+                    return data
+            except json.JSONDecodeError:
+                continue
+                
+        # If direct parsing failed, try extracting via regex
+        match = re.search(r'(\{.*\})', text, re.DOTALL)
+        if match:
+            extracted = match.group(1)
+            for suffix in suffixes_to_try:
+                try:
+                    data = json.loads(extracted + suffix)
+                    if "segments" in data:
+                        return data
+                except json.JSONDecodeError:
+                    continue
 
-        return {"segments": []}
+        print(f"Failed to parse Groq response or no segments found.\nRaw content: {content}")
+        return {"segments": [], "raw_content": content}
 
 
 def get_vision_provider() -> VisionProvider:
