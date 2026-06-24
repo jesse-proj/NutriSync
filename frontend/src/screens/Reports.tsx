@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import {
   Download,
   TrendingDown,
@@ -7,44 +8,137 @@ import { ScrollArea, ScrollBar } from '../components/ui/scroll-area'
 import Footer from '../components/Footer'
 import PatientNavbar from '../components/PatientNavbar'
 import { Button } from '@/components/ui/button'
+import { apiFetch } from '../api/client'
+import { useAuth } from '../context/AuthContext'
 
 // ponytail: Reports.tsx uses simple native SVG and Tailwind divs for charts to keep it minimal and dependency-free
 
+interface FoodLog {
+  id: number;
+  description: string;
+  sodium_mg: number;
+  carbs_g: number;
+  calories_kcal: number;
+  potassium_mg?: number;
+  protein_g?: number;
+  fat_g?: number;
+  logged_at: string;
+}
+
 const Reports = () => {
+  const { user } = useAuth()
+  const [logs, setLogs] = useState<FoodLog[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const weeklyData = [
-    { day: 'Mon', calories: 85, sodium: 70 },
-    { day: 'Tue', calories: 95, sodium: 60 },
-    { day: 'Wed', calories: 75, sodium: 40 },
-    { day: 'Thu', calories: 80, sodium: 85 },
-    { day: 'Fri', calories: 60, sodium: 50 },
-    { day: 'Sat', calories: 90, sodium: 95 },
-    { day: 'Sun', calories: 55, sodium: 45 },
-  ]
-
-  const topDishes = [
-    {
-      name: 'Sinigang na Bangus',
-      kcal: 320,
-      sodium: 480,
-      count: 4,
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDU0WCHoFSvJk7yjsgrXVvBiJQUOnliLQ_-h4dOYGZnm4JfKrswwvozJKvOkGjih9_FnM39K6S3L0qdkOHG2R5Wc4h6XKZnMMh1RptB1LTuAw7cJHHeQ1VLSuJpPVteVaMbJ1z93-gqkePrxUzng4HD1Tkqi4YE8s8mQIcqkyEBwM4_G_29DEHu1CRn-vK8j-mmvbxJrq_xoQ2ag0hfymux9Ct34bt_0W2OfpFPBSGsvRCCkU_nOaiTzw9k9icP0azStVMWfl9VyQ'
-    },
-    {
-      name: 'Ginisang Pinakbet',
-      kcal: 180,
-      sodium: 350,
-      count: 3,
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuApFj4jansD-rX9ZvCPw_W2rbsV48s_CR9apKn5MpjiMx68XmaU-aDzTSKSAXTJybVlANNkt73dHAOIpRkpwRrfvkV1c9qfru6yK_uUJSkNnN0SQ0jB21FyGwOa5Dw5zpvrthlWCTUNT4DsFysrnYnD5ZYXa6K2HGwuyrppFFCPquBGd3Wg95PiIf_cII_GfI6dk7fnf17Kop1Ohz5jJY1oUOtpnnDR0F87mOibN9Ah79v4dsq439ycVqwQ9tNvYnL97iGn92uRIA'
-    },
-    {
-      name: 'Grilled Chicken & Rice',
-      kcal: 450,
-      sodium: 210,
-      count: 2,
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA4CtALdKbJQY5eO1UlljM027liXiCOjcc2-NwCOEMRsaPWC3Y5OYaFGSj5I-M1i6uAwXcCa9jy_QCNCHyQQcqd2OJ3jIJYLUeA0B5_KqZ_faORMmbbYPMzjU2LzFvtBSHoYSraMi6fIARxpmJ1PuZ0kwZdZ_LFfU9ma6XIA0c6ztIaWQYuexZ3mVd9Ue86eU6dsEecY7K9J0GEDzTeVu3Yhf0JmGhdmxm9CBA_WgDy6bcf6uc6c9brCdxH-5k4JDfILfbDptpNow'
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        const data = await apiFetch('/api/patients/logs?limit=30')
+        if (data) setLogs(data)
+      } catch (e) {
+        console.error("Error fetching logs:", e)
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+    fetchLogs()
+  }, [])
+
+  // Calculate weekly data from logs (last 7 days)
+  const getWeeklyData = () => {
+    const weeklyData = []
+    const today = new Date()
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const dailyStats: { [key: string]: { calories: number; sodium: number } } = {}
+
+    // Initialize last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today)
+      date.setDate(date.getDate() - i)
+      const dayKey = date.toISOString().split('T')[0]
+      dailyStats[dayKey] = { calories: 0, sodium: 0 }
+    }
+
+    // Aggregate log data by day
+    logs.forEach(log => {
+      const logDate = new Date(log.logged_at)
+      const dayKey = logDate.toISOString().split('T')[0]
+      if (dailyStats[dayKey]) {
+        dailyStats[dayKey].calories += log.calories_kcal
+        dailyStats[dayKey].sodium += log.sodium_mg
+      }
+    })
+
+    // Convert to percentage (0-100 scale)
+    const maxCalories = Math.max(2500, ...Object.values(dailyStats).map(s => s.calories))
+    const maxSodium = Math.max(2300, ...Object.values(dailyStats).map(s => s.sodium))
+
+    let dayIndex = 0
+    for (const dayKey in dailyStats) {
+      const stats = dailyStats[dayKey]
+      weeklyData.push({
+        day: days[(new Date(dayKey).getDay())],
+        calories: Math.round((stats.calories / maxCalories) * 100),
+        sodium: Math.round((stats.sodium / maxSodium) * 100),
+      })
+      dayIndex++
+    }
+
+    return weeklyData
+  }
+
+  // Calculate top dishes from logs
+  const getTopDishes = () => {
+    const dishMap: { [key: string]: { count: number; kcal: number; sodium: number } } = {}
+
+    logs.forEach(log => {
+      if (!dishMap[log.description]) {
+        dishMap[log.description] = { count: 0, kcal: 0, sodium: 0 }
+      }
+      dishMap[log.description].count += 1
+      dishMap[log.description].kcal += log.calories_kcal
+      dishMap[log.description].sodium += log.sodium_mg
+    })
+
+    const topDishes = Object.entries(dishMap)
+      .map(([name, stats]) => ({
+        name,
+        kcal: Math.round(stats.kcal / stats.count),
+        sodium: Math.round(stats.sodium / stats.count),
+        count: stats.count,
+        image: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=150&h=150&fit=crop'
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3)
+
+    return topDishes
+  }
+
+  // Calculate total consumed and adherence
+  const getTotalConsumed = () => {
+    const totalCalories = logs.reduce((sum, log) => sum + log.calories_kcal, 0)
+    const totalSodium = logs.reduce((sum, log) => sum + log.sodium_mg, 0)
+    const targetCalories = logs.length * 2000 // Assuming 2000 kcal daily target
+    const targetSodium = logs.length * 2000 // Assuming 2000mg daily target
+    const calorieAdherence = Math.min(100, Math.round((targetCalories / (targetCalories || 1)) * 100))
+    
+    return { totalCalories, totalSodium, calorieAdherence }
+  }
+
+  const weeklyData = getWeeklyData()
+  const topDishes = getTopDishes()
+  const { calorieAdherence } = getTotalConsumed()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background text-on-surface flex flex-col font-sans">
+        <PatientNavbar activePage="reports" />
+        <div className="flex-grow flex items-center justify-center">
+          <p className="text-on-surface-variant">Loading reports...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background text-on-surface flex flex-col font-sans relative">
@@ -117,13 +211,15 @@ const Reports = () => {
                         <TrendingDown className="h-6 w-6" />
                       </div>
                       <span className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-xs font-bold">
-                        Improving
+                        {logs.length > 0 ? 'Tracking' : 'Start Logging'}
                       </span>
                     </div>
                     <div>
-                      <h4 className="text-lg font-bold text-secondary">Sodium Reduction</h4>
+                      <h4 className="text-lg font-bold text-secondary">Sodium Management</h4>
                       <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">
-                        Your sodium intake is down 12% from last week. Great job avoiding processed broths!
+                        {logs.length > 0 
+                          ? `You've logged ${logs.length} meals. ${logs.some(l => l.sodium_mg > 400) ? 'Try to reduce high-sodium meals.' : 'Great job keeping sodium low!'}` 
+                          : 'Start logging meals to track your sodium intake.'}
                       </p>
                     </div>
                   </div>
@@ -135,13 +231,15 @@ const Reports = () => {
                         <CheckCircle className="h-6 w-6" />
                       </div>
                       <span className="bg-surface-variant text-on-surface-variant px-3 py-1 rounded-full text-xs font-bold">
-                        On Track
+                        {logs.length > 0 ? 'Monitoring' : 'No Data'}
                       </span>
                     </div>
                     <div>
                       <h4 className="text-lg font-bold text-on-surface">Potassium Intake</h4>
                       <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">
-                        Maintaining steady levels at 3,200mg avg. Continue including bananas and spinach.
+                        {logs.length > 0 
+                          ? `Average: ${Math.round(logs.reduce((sum, log) => sum + (log.potassium_mg || 0), 0) / logs.length)}mg per meal.` 
+                          : 'Log meals to track potassium intake.'}
                       </p>
                     </div>
                   </div>
@@ -153,7 +251,9 @@ const Reports = () => {
                 <div className="relative z-10">
                   <h3 className="text-lg font-bold mb-2">Clinical Outlook</h3>
                   <p className="text-sm opacity-90 max-w-xl leading-relaxed">
-                    Your recent dietary changes are positively impacting your fluid retention markers. Continue this regimen for the next 14 days before your consultation.
+                    {logs.length > 0 
+                      ? `Your recent meal logging shows ${Math.round(logs.reduce((sum, log) => sum + log.sodium_mg, 0) / logs.length)}mg average sodium per meal. ${logs.length > 10 ? 'Continue this tracking for better health insights.' : 'Log more meals for comprehensive analysis.'}`
+                      : 'Start logging your meals to get personalized clinical insights.'}
                   </p>
                 </div>
                 <div className="absolute -right-12 -bottom-12 w-48 h-48 bg-primary/20 rounded-full blur-3xl"></div>
@@ -188,17 +288,17 @@ const Reports = () => {
                   <div className="relative w-20 h-20">
                     <svg className="w-full h-full" viewBox="0 0 36 36">
                       <path className="stroke-current text-primary/10" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" strokeWidth="3"></path>
-                      <path className="stroke-current text-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" strokeDasharray="82, 100" strokeLinecap="round" strokeWidth="3"></path>
+                      <path className="stroke-current text-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" strokeDasharray={`${calorieAdherence}, 100`} strokeLinecap="round" strokeWidth="3"></path>
                     </svg>
-                    <div className="absolute inset-0 flex items-center justify-center text-primary font-extrabold text-lg">82%</div>
+                    <div className="absolute inset-0 flex items-center justify-center text-primary font-extrabold text-lg">{calorieAdherence}%</div>
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-bold text-on-surface">Goal Adherence</p>
-                    <p className="text-xs text-on-surface-variant mt-0.5 font-medium">Top 5% of users this month</p>
+                    <p className="text-xs text-on-surface-variant mt-0.5 font-medium">{logs.length} meals logged</p>
                   </div>
                 </div>
                 <p className="text-sm text-on-surface-variant italic leading-relaxed text-left">
-                  "Consistency is key, Juan. You've logged 28 days straight!"
+                  {logs.length > 20 ? `Great consistency! You've logged ${logs.length} meals.` : `Keep logging meals to track your progress!`}
                 </p>
               </div>
             </aside>

@@ -160,6 +160,8 @@ const PatientDashboard = () => {
 
   // File upload state
   const [isUploading, setIsUploading] = useState(false)
+  const [scannedFoodData, setScannedFoodData] = useState<any>(null)
+  const [showFoodConfirmation, setShowFoodConfirmation] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Accessibility state
@@ -282,7 +284,7 @@ const PatientDashboard = () => {
 
       try {
         const token = localStorage.getItem('token')
-        const response = await fetch('http://127.0.0.1:8000/api/food/log-photo', {
+        const response = await fetch('http://127.0.0.1:8000/api/food/analyze-photo', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -290,7 +292,9 @@ const PatientDashboard = () => {
           body: formData
         })
         if (response.ok) {
-          await fetchDashboardData()
+          const analysisData = await response.json()
+          setScannedFoodData(analysisData)
+          setShowFoodConfirmation(true)
         } else {
           alert("Failed to analyze image. Please try again.")
         }
@@ -302,6 +306,34 @@ const PatientDashboard = () => {
         if (fileInputRef.current) fileInputRef.current.value = ''
       }
     }
+  }
+
+  const handleConfirmFoodLog = async () => {
+    if (!scannedFoodData) return
+    
+    try {
+      const token = localStorage.getItem('token')
+      await fetch('http://127.0.0.1:8000/api/food/log', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(scannedFoodData)
+      })
+      
+      setShowFoodConfirmation(false)
+      setScannedFoodData(null)
+      await fetchDashboardData()
+    } catch (e) {
+      console.error("Error logging food:", e)
+      alert("Error saving food log")
+    }
+  }
+
+  const handleRejectFoodLog = () => {
+    setShowFoodConfirmation(false)
+    setScannedFoodData(null)
   }
 
   const toggleLosartan = () => {
@@ -339,6 +371,61 @@ const PatientDashboard = () => {
         <div className="fixed inset-0 bg-black/50 z-[110] flex flex-col items-center justify-center text-white gap-4 backdrop-blur-sm">
           <Loader2 className="h-12 w-12 animate-spin text-primary-fixed" />
           <p className="font-headline-sm">Analyzing meal photo with AI...</p>
+        </div>
+      )}
+
+      {/* Food Confirmation Modal */}
+      {showFoodConfirmation && scannedFoodData && (
+        <div className="fixed inset-0 bg-black/50 z-[120] flex items-center justify-center backdrop-blur-sm p-4">
+          <div className="bg-surface-container-lowest rounded-2xl shadow-lg max-w-md w-full border border-outline-variant/30 p-6">
+            <h2 className="text-lg font-bold text-on-surface mb-4">Confirm Food Log</h2>
+            <div className="space-y-3 mb-6">
+              <div className="p-4 bg-surface-container rounded-lg">
+                <p className="text-sm font-semibold text-on-surface mb-1">Food Description</p>
+                <p className="text-sm text-on-surface-variant">{scannedFoodData.description}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-surface-container rounded-lg">
+                  <p className="text-xs text-on-surface-variant">Calories</p>
+                  <p className="text-lg font-bold text-primary">{Math.round(scannedFoodData.calories_kcal)} kcal</p>
+                </div>
+                <div className="p-3 bg-surface-container rounded-lg">
+                  <p className="text-xs text-on-surface-variant">Sodium</p>
+                  <p className="text-lg font-bold text-secondary">{Math.round(scannedFoodData.sodium_mg)} mg</p>
+                </div>
+                <div className="p-3 bg-surface-container rounded-lg">
+                  <p className="text-xs text-on-surface-variant">Protein</p>
+                  <p className="text-lg font-bold" style={{ color: '#00B4AD' }}>{Math.round(scannedFoodData.protein_g)}g</p>
+                </div>
+                <div className="p-3 bg-surface-container rounded-lg">
+                  <p className="text-xs text-on-surface-variant">Carbs</p>
+                  <p className="text-lg font-bold text-primary">{Math.round(scannedFoodData.carbs_g)}g</p>
+                </div>
+                <div className="p-3 bg-surface-container rounded-lg">
+                  <p className="text-xs text-on-surface-variant">Fat</p>
+                  <p className="text-lg font-bold" style={{ color: '#ED8659' }}>{Math.round(scannedFoodData.fat_g)}g</p>
+                </div>
+                <div className="p-3 bg-surface-container rounded-lg">
+                  <p className="text-xs text-on-surface-variant">Potassium</p>
+                  <p className="text-lg font-bold text-primary-container">{Math.round(scannedFoodData.potassium_mg)}mg</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleRejectFoodLog}
+                className="flex-1 bg-surface-container text-on-surface hover:bg-outline-variant rounded-xl py-2"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirmFoodLog}
+                className="flex-1 bg-primary text-on-primary hover:bg-primary-container rounded-xl py-2"
+              >
+                Confirm & Log
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -475,7 +562,7 @@ const PatientDashboard = () => {
                     <span className="text-on-surface-variant">{Math.round(consumedProtein)}g / {targetProtein}g</span>
                   </div>
                   <div className="w-full bg-surface-container h-3 rounded-full overflow-hidden">
-                    <div className="bg-secondary h-full rounded-full transition-all duration-500" style={{ width: `${proteinPct}%` }}></div>
+                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${proteinPct}%`, backgroundColor: '#00B4AD' }}></div>
                   </div>
                 </div>
 
@@ -497,7 +584,7 @@ const PatientDashboard = () => {
                     <span className="text-on-surface-variant">{Math.round(consumedFat)}g / {targetFat}g</span>
                   </div>
                   <div className="w-full bg-surface-container h-3 rounded-full overflow-hidden">
-                    <div className="bg-tertiary h-full rounded-full transition-all duration-500" style={{ width: `${fatPct}%` }}></div>
+                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${fatPct}%`, backgroundColor: '#ED8659' }}></div>
                   </div>
                 </div>
 
