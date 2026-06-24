@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext'
 import { apiFetch } from '../api/client'
 import {
   LogOut,
-  Heart,
   Calendar,
   Camera,
   Loader2,
@@ -25,6 +24,7 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { ScrollArea, ScrollBar } from '../components/ui/scroll-area'
 import logoBrand from '../assets/nutrisync.png'
+import { Link } from 'react-router-dom'
 
 interface Targets {
   sodium_mg: number;
@@ -290,10 +290,10 @@ const PatientDashboard = () => {
               <img src={logoBrand} className='h-12 w-17' alt="logo" />
             </span>
             <div className="hidden md:flex gap-6 items-center">
-              <a className="text-primary font-semibold border-b-2 border-primary pb-1 text-sm transition-all" href="#">Home</a>
-              <a className="text-on-surface-variant hover:text-primary transition-colors text-sm" href="#">Reports</a>
-              <a className="text-on-surface-variant hover:text-primary transition-colors text-sm" href="#">Goals</a>
-              <a className="text-on-surface-variant hover:text-primary transition-colors text-sm" href="#">Profile</a>
+              <Link className="text-primary font-semibold border-b-2 border-primary pb-1 text-sm transition-all" to="/patient/dashboard">Home</Link>
+              <Link className="text-on-surface-variant hover:text-primary transition-colors text-sm" to="/patient/reports">Reports</Link>
+              <Link className="text-on-surface-variant hover:text-primary transition-colors text-sm" to="/patient/goals">Goals</Link>
+              <Link className="text-on-surface-variant hover:text-primary transition-colors text-sm" to="/patient/profile">Profile</Link>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -427,7 +427,7 @@ const PatientDashboard = () => {
                 </div>
 
                 {/* Warning Alert Box */}
-                <div className={`p-4 rounded-xl flex gap-3 items-start border mt-4 ${isSodiumWarning
+                <div className={`p-7 rounded-xl flex gap-3 items-start border mb-7 ${isSodiumWarning
                   ? 'bg-error-container text-on-error-container border-error/10'
                   : 'bg-surface-container text-on-surface border-outline-variant/20'
                   }`}>
