@@ -44,9 +44,37 @@ async def log_food_photo(
     if not dish_description or len(dish_description) < 3:
         raise HTTPException(status_code=400, detail="Could not identify food in the image.")
 
+<<<<<<< HEAD
     # Step 2: Retrieve nutritional data from Edamam
     nutrition_service = EdamamNutritionProvider()
     nutrients = nutrition_service.analyze(dish_description)
+=======
+    # Aggregate nutritional info
+    dish_names = []
+    total_calories = 0.0
+    total_sodium = 0.0
+    total_carbs = 0.0
+    total_potassium = 0.0
+    total_proteins = 0.0
+    total_fat = 0.0
+
+    for segment in segments:
+        dish_names.append(segment.get("name", "Unknown"))
+
+        nutrients = segment.get("nutritional_info") or {}
+        total_calories += nutrients.get("calories") or 0.0
+
+        macronutrients = nutrients.get("macronutrients") or {}
+        total_carbs += macronutrients.get("carbohydrates") or 0.0
+        total_proteins += macronutrients.get("proteins") or 0.0
+        total_fat += macronutrients.get("fat") or 0.0
+
+        micronutrients = nutrients.get("micronutrients") or {}
+        total_sodium += micronutrients.get("sodium") or 0.0
+        total_potassium += micronutrients.get("potassium") or 0.0
+
+    final_description = ", ".join(dish_names) if dish_names else "Unknown Food"
+>>>>>>> 6d9a54b9c8d161011490396251bfa6513e01da13
 
     # Save to database
     new_log = FoodLogs(
