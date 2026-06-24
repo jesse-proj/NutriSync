@@ -43,7 +43,8 @@ async def log_food_photo(
 
     segments = result.get("segments", [])
     if not segments:
-        raise HTTPException(status_code=400, detail="No food detected in the image.")
+        raw = result.get("raw_content", "None")
+        raise HTTPException(status_code=400, detail=f"No food detected in the image. Raw response: {raw}")
 
     # Aggregate nutritional info
     dish_names = []
@@ -54,6 +55,10 @@ async def log_food_photo(
     total_proteins = 0.0
     total_fat = 0.0
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> bd362562f9e0f3efe85b05c0d6a4cfca0b854dfd
     for segment in segments:
         dish_names.append(segment.get("name", "Unknown"))
 
