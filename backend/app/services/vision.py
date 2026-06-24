@@ -121,9 +121,10 @@ class GroqVisionProvider(VisionProvider):
                         {
                             "type": "text",
                             "text": (
-                                "Analyze this food image. Return ONLY a JSON object with this schema "
-                                "(no markdown, no explanation):\n"
-                                '{\n  "segments": [\n    {\n      "name": "food name",\n      "nutritional_info": {\n        "calories": 0.0,\n        "macronutrients": {"carbohydrates": 0.0, "proteins": 0.0, "fat": 0.0},\n        "micronutrients": {"sodium": 0.0, "potassium": 0.0}\n      }\n    }\n  ]\n}'
+                                "Analyze this food image. Identify the dishes shown and estimate their nutritional values for a standard serving. "
+                                "Capitalize the dish name(s). Replace the 0.0 template values with your best estimated numerical values. "
+                                "Return ONLY a JSON object with this schema (no markdown, no explanation):\n"
+                                '{\n  "segments": [\n    {\n      "name": "Dish Name",\n      "nutritional_info": {\n        "calories": 500.0,\n        "macronutrients": {"carbohydrates": 50.0, "proteins": 20.0, "fat": 15.0},\n        "micronutrients": {"sodium": 800.0, "potassium": 400.0}\n      }\n    }\n  ]\n}'
                             ),
                         },
                         {
