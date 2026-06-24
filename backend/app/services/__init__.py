@@ -1,8 +1,8 @@
-from .vision import VisionProvider, LogMealVisionProvider, GroqVisionProvider, get_vision_provider
+from .vision import GroqVisionProvider, get_vision_provider
+from .nutrition import EdamamNutritionProvider
 
 __all__ = [
-    "VisionProvider",
-    "LogMealVisionProvider",
     "GroqVisionProvider",
     "get_vision_provider",
+    "EdamamNutritionProvider",
 ]
