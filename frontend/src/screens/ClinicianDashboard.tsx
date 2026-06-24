@@ -1,115 +1,332 @@
-
 import { useAuth } from '../context/AuthContext'
-import logoBrand from '../assets/logo_brand.png'
-import { Users, LogOut, ShieldAlert } from 'lucide-react'
 import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { ScrollArea } from '../components/ui/scroll-area'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarInset,
+  SidebarSeparator,
+} from '../components/ui/sidebar'
+import logoBrand from '../assets/logo_brand.png'
+import {
+  LayoutDashboard,
+  TriangleAlert,
+  Users,
+  TrendingUp,
+  Archive,
+  UserPlus,
+  HelpCircle,
+  LogOut,
+  Search,
+  Bell,
+  Settings,
+  Utensils,
+  BadgeCheck,
+  Phone,
+  MessageSquare,
+  Camera,
+  AlertCircle,
+  CheckCheck,
+  Plus,
+} from 'lucide-react'
+
+// ─── Data ────────────────────────────────────────────────────────────────────
+
+const navItems = [
+  { icon: LayoutDashboard, label: 'Home', active: true },
+  { icon: TriangleAlert, label: 'Urgent Tasks' },
+  { icon: Users, label: 'Patients' },
+  { icon: TrendingUp, label: 'Health Trends' },
+  { icon: Archive, label: 'Archived' },
+]
+
+const urgentAlerts = [
+  { id: 'NSY-9021', initials: 'RH', name: 'Robert H. Miller', risk: 'critical' as const, metric: '2.4g Sodium', detail: 'High Intake Detected' },
+  { id: 'NSY-7734', initials: 'SC', name: 'Sarah Chen', risk: 'critical' as const, metric: 'Missed Medication', detail: 'Lisinopril – 24hr Delay' },
+  { id: 'NSY-1245', initials: 'DJ', name: 'David Jones', risk: 'warning' as const, metric: '1.8g Sodium', detail: 'Gradual Increase Trend' },
+  { id: 'NSY-8821', initials: 'AL', name: 'Anita Lopez', risk: 'warning' as const, metric: 'BP Spike', detail: '145/95 mmHg' },
+]
+
+const recentActivity = [
+  { icon: MessageSquare, colorClass: 'text-primary bg-primary/10', patient: 'Robert H. Miller', action: ' used NutriGabay', note: '"Is there a low-sodium substitute for soy sauce in stir-fry?"', time: '14 minutes ago' },
+  { icon: Camera, colorClass: 'text-secondary bg-secondary/10', patient: 'Sarah Chen', action: ' uploaded a meal log', note: 'AI verified: Grilled Salmon & Steamed Greens', time: '1 hour ago' },
+  { icon: AlertCircle, colorClass: 'text-error bg-error/10', patient: 'System Alert', action: ': Delayed Check-in', note: 'Anita Lopez missed scheduled morning BP log.', time: '3 hours ago' },
+  { icon: CheckCheck, colorClass: 'text-primary bg-primary/10', patient: 'David Jones', action: ' met all daily targets', note: '7/7 days sodium compliance reached.', time: '5 hours ago' },
+]
+
+// ─── Metric Card ─────────────────────────────────────────────────────────────
+
+function MetricCard({
+  icon: Icon, iconClass, label, value, badge, badgeClass,
+  cardClass = 'bg-white border-outline-variant',
+  labelClass = 'text-on-surface-variant',
+  valueClass = 'text-on-surface',
+  watermark,
+}: {
+  icon: React.ElementType; iconClass: string; label: string; value: string
+  badge: string; badgeClass: string; cardClass?: string; labelClass?: string
+  valueClass?: string; watermark?: React.ReactNode
+}) {
+  return (
+    <div className={`relative overflow-hidden border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow ${cardClass}`}>
+      {watermark && <div className="absolute -right-4 -top-4 opacity-10 pointer-events-none">{watermark}</div>}
+      <div className="flex justify-between items-start mb-2 relative z-10">
+        <Icon className={`h-6 w-6 ${iconClass}`} />
+        <span className={`text-xs font-bold ${badgeClass}`}>{badge}</span>
+      </div>
+      <p className={`text-[11px] uppercase tracking-wider font-medium mb-1 relative z-10 ${labelClass}`}>{label}</p>
+      <p className={`text-4xl font-extrabold leading-tight relative z-10 ${valueClass}`}>{value}</p>
+    </div>
+  )
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 const ClinicianDashboard = () => {
   const { user, logout } = useAuth()
-
-  // Mock patient data for clinic roster
-  const patients = [
-    { name: 'Juan dela Cruz', id: '1', age: 58, diagnosis: 'Hypertension', compliance: 'Normal (85%)', lastLogged: '2 hours ago', risk: 'low' },
-    { name: 'Maria Salome', id: '2', age: 62, diagnosis: 'Stage III CKD', compliance: 'Alert (Exceeded Sodium Cap)', lastLogged: '4 hours ago', risk: 'high' },
-    { name: 'Emilio Aguinaldo', id: '3', age: 70, diagnosis: 'Type 2 Diabetes', compliance: 'No logs for 48 hours', lastLogged: '2 days ago', risk: 'medium' },
-  ]
+  const initials = (user?.full_name ?? 'MS').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 
   return (
-    <div className="min-h-screen bg-background text-on-surface flex flex-col font-sans">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white border-b border-outline-variant px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <img src={logoBrand} alt="NutriSync Logo" className="h-10 w-auto" />
-          <div className="h-6 w-px bg-outline-variant hidden sm:block"></div>
-          <span className="font-headline-sm text-headline-sm text-primary hidden sm:inline-block">Clinician Portal</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-lg">
-            <Users className="h-4 w-4 text-primary" />
-            <span className="font-label-md text-label-md text-on-surface font-semibold">Dr. {user?.full_name}</span>
-          </div>
-          <Button 
-            onClick={logout} 
-            variant="ghost"
-            className="flex items-center gap-2 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors"
-            title="Log Out"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="font-label-sm text-label-sm hidden sm:inline">Log out</span>
-          </Button>
-        </div>
-      </header>
+    <SidebarProvider defaultOpen={true}>
+      <Sidebar collapsible="icon" variant="sidebar">
 
-      {/* Main Content */}
-      <main className="flex-grow p-6 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Clinician Overview Panel */}
-        <section className="lg:col-span-2 space-y-6">
-          <div className="flex justify-between items-center">
-            <h1 className="font-headline-md text-headline-md text-on-surface">Remote Patient Roster</h1>
-            <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">
-              3 Patients Registered
-            </span>
+        {/* Brand header */}
+        <SidebarHeader className="py-4 px-3">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <img src={logoBrand} alt="NutriSync Logo" className="w-8 h-8 object-contain flex-shrink-0" />
+            <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
+              <span className="text-base font-extrabold text-sidebar-primary">NutriSync</span>
+              <span className="text-[11px] opacity-60">Clinical Portal</span>
+            </div>
+          </div>
+        </SidebarHeader>
+
+        {/* Navigation */}
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {navItems.map(({ icon: Icon, label, active }) => (
+                  <SidebarMenuItem key={label}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={label}
+                    >
+                      <a href="#">
+                        <Icon />
+                        <span>{label}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+
+        {/* Footer */}
+        <SidebarFooter className="pb-4">
+          <SidebarSeparator className="mx-0 mb-2" />
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton tooltip="New Patient" className="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 hover:text-sidebar-primary-foreground font-bold">
+                <UserPlus />
+                <span>New Patient</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Help Center">
+                <a href="#"><HelpCircle /><span>Help Center</span></a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={logout} tooltip="Logout" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                <LogOut />
+                <span>Logout</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      </Sidebar>
+
+      {/* ── Main content (inset) ──────────────────────────────────────── */}
+      <SidebarInset className="flex flex-col min-h-screen overflow-y-auto bg-background">
+
+        {/* Top Bar */}
+        <header className="sticky top-0 z-40 bg-white border-b border-outline-variant flex items-center justify-between px-6 h-16 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <SidebarTrigger className="text-on-surface-variant" />
+            {/* Search */}
+            <div className="relative max-w-md w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-outline pointer-events-none" />
+              <Input
+                type="text"
+                placeholder="Search patients, metrics..."
+                className="pl-10 rounded-full bg-surface-container-low border-outline-variant focus:border-primary text-sm"
+              />
+            </div>
           </div>
 
-          {/* Roster list */}
-          <div className="space-y-4">
-            {patients.map(p => (
-              <div key={p.id} className="bg-white border border-outline-variant rounded-xl p-5 shadow-sm hover:border-primary/50 transition-colors flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="space-y-1">
-                  <h3 className="font-headline-sm text-headline-sm text-on-surface">{p.name}</h3>
-                  <p className="font-body-md text-body-md text-on-surface-variant">
-                    {p.age} years old • <span className="font-semibold text-primary">{p.diagnosis}</span>
-                  </p>
-                  <p className="text-xs text-outline">Last log activity: {p.lastLogged}</p>
-                </div>
-                <div className="flex flex-col md:items-end gap-2 w-full md:w-auto">
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold w-fit ${
-                    p.risk === 'high' 
-                      ? 'bg-red-100 text-red-800' 
-                      : p.risk === 'medium'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-green-100 text-green-800'
-                  }`}>
-                    {p.compliance}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button variant="secondary" size="sm">
-                      View Logs
-                    </Button>
-                    <Button size="sm">
-                      Edit Thresholds
-                    </Button>
-                  </div>
-                </div>
+          {/* Right controls */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="relative rounded-full">
+                <Bell className="h-5 w-5 text-on-surface-variant" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-white" />
+              </Button>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <Settings className="h-5 w-5 text-on-surface-variant" />
+              </Button>
+            </div>
+            <div className="h-8 w-px bg-outline-variant" />
+            <div className="flex items-center gap-3 cursor-pointer">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-semibold text-on-surface leading-none">Dr. {user?.full_name ?? 'Maria Santos'}</p>
+                <p className="text-[11px] text-on-surface-variant">Cardiology</p>
               </div>
-            ))}
+              <div className="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center text-xs font-bold text-on-surface border-2 border-primary/30 flex-shrink-0">
+                {initials}
+              </div>
+            </div>
           </div>
-        </section>
+        </header>
 
-        {/* Clinician Sidebar Info */}
-        <section className="space-y-6">
-          {/* Quick Stats */}
-          <div className="bg-white border border-outline-variant rounded-2xl p-6 shadow-sm space-y-4">
-            <h3 className="font-headline-sm text-headline-sm flex items-center gap-2">
-              <ShieldAlert className="h-5 w-5 text-red-600" /> Exceptions Alert
-            </h3>
-            <p className="font-body-md text-body-md text-on-surface-variant">
-              The following alerts require clinical follow-up:
-            </p>
-            <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-2">
-              <span className="font-label-sm text-label-sm text-red-800 font-bold block">MEMBER EXCEPTION</span>
-              <span className="font-body-md text-body-md text-red-950 font-bold block">Maria Salome exceeded Daily Sodium Target 3 times this week.</span>
-              <span className="text-xs text-red-700 block">Recommended Action: Call to adjust dietary compliance.</span>
-            </div>
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl space-y-2">
-              <span className="font-label-sm text-label-sm text-yellow-800 font-bold block">SILENCE ALERT</span>
-              <span className="font-body-md text-body-md text-yellow-950 font-bold block">Emilio Aguinaldo has not logged any meal for 48 hours.</span>
-              <span className="text-xs text-yellow-700 block">Recommended Action: Send an SMS nudge.</span>
-            </div>
+        {/* Canvas */}
+        <div className="p-8 flex flex-col gap-8 flex-1">
+
+          {/* Key Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <MetricCard icon={Users} iconClass="text-secondary" label="Total Patients" value="128" badge="+4% vs last mo" badgeClass="text-primary" />
+            <MetricCard
+              icon={AlertCircle} iconClass="text-error" label="High Risk Alerts" value="14"
+              badge="Critical Attention" badgeClass="text-error"
+              cardClass="bg-error-container border-error/20" labelClass="text-on-error-container" valueClass="text-on-error-container"
+              watermark={<TriangleAlert className="h-32 w-32 text-error" />}
+            />
+            <MetricCard icon={Utensils} iconClass="text-primary" label="Pending Meal Reviews" value="42" badge="Today" badgeClass="text-on-surface-variant" />
+            <MetricCard icon={BadgeCheck} iconClass="text-primary" label="Weekly Compliance" value="88%" badge="+2.5% improvement" badgeClass="text-primary" />
           </div>
-        </section>
-      </main>
-    </div>
+
+          {/* Dashboard Grid */}
+          <div className="grid grid-cols-12 gap-5">
+
+            {/* Urgent Alerts Table */}
+            <div className="col-span-12 lg:col-span-8 bg-white border border-outline-variant rounded-xl flex flex-col">
+              <div className="p-4 border-b border-outline-variant flex justify-between items-center bg-surface-bright/50 rounded-t-xl">
+                <div>
+                  <h2 className="text-lg font-semibold text-on-surface">Urgent Patient Alerts</h2>
+                  <p className="text-sm text-on-surface-variant">Requiring immediate clinical intervention</p>
+                </div>
+                <Button variant="ghost" className="text-secondary text-xs font-bold hover:underline px-2">
+                  View All Active Alerts
+                </Button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-surface-container-low text-on-surface-variant text-[11px] uppercase tracking-wide">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Patient Name</th>
+                      <th className="px-4 py-3 font-medium">Risk Level</th>
+                      <th className="px-4 py-3 font-medium">Latest Metric</th>
+                      <th className="px-4 py-3 text-right font-medium">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant">
+                    {urgentAlerts.map((alert) => (
+                      <tr key={alert.id} className={`hover:bg-surface-container-lowest transition-colors border-l-4 ${alert.risk === 'critical' ? 'border-error' : 'border-tertiary-container'}`}>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                              {alert.initials}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-on-surface">{alert.name}</p>
+                              <p className="text-[11px] text-on-surface-variant">ID: #{alert.id}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          {alert.risk === 'critical'
+                            ? <span className="bg-error-container text-error text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Critical</span>
+                            : <span className="bg-tertiary-container text-on-tertiary-container text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Warning</span>}
+                        </td>
+                        <td className="px-4 py-4">
+                          <p className={`text-sm font-bold font-mono ${alert.risk === 'critical' ? 'text-error' : 'text-tertiary'}`}>{alert.metric}</p>
+                          <p className="text-[11px] text-on-surface-variant">{alert.detail}</p>
+                        </td>
+                        <td className="px-4 py-4 text-right">
+                          <div className="flex items-center gap-1 justify-end">
+                            <Button variant="ghost" size="icon" className="text-secondary hover:bg-secondary/10 rounded-lg" title="Call Patient">
+                              <Phone className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" className="bg-secondary-container text-on-surface hover:bg-secondary-container/80 text-xs font-bold px-3">
+                              Review Log
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Recent Activity Feed */}
+            <div className="col-span-12 lg:col-span-4 bg-white border border-outline-variant rounded-xl flex flex-col overflow-hidden">
+              <div className="p-4 border-b border-outline-variant bg-surface-bright/50">
+                <h2 className="text-lg font-semibold text-on-surface">Recent Activity</h2>
+                <p className="text-sm text-on-surface-variant">Logs & NutriGabay interactions</p>
+              </div>
+              <ScrollArea className="flex-1 max-h-[480px]">
+                <ul className="p-4 space-y-6">
+                  {recentActivity.map((item, i) => {
+                    const Icon = item.icon
+                    return (
+                      <li key={i} className="flex gap-3 relative">
+                        {i < recentActivity.length - 1 && (
+                          <div className="absolute left-[13px] top-8 bottom-[-24px] w-[2px] bg-outline-variant/30" />
+                        )}
+                        <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center relative z-10 ${item.colorClass}`}>
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm text-on-surface"><span className="font-bold">{item.patient}</span>{item.action}</p>
+                          <p className="text-xs bg-surface-container px-2 py-1 rounded-md mt-1 text-on-surface-variant italic">{item.note}</p>
+                          <p className="text-[11px] text-on-surface-variant mt-1">{item.time}</p>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </ScrollArea>
+            </div>
+
+          </div>
+        </div>
+      </SidebarInset>
+
+      {/* FAB */}
+      <button
+        className="fixed bottom-8 right-8 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary/90 active:scale-90 transition-all z-50 group"
+        title="New Clinical Note"
+      >
+        <Plus className="h-7 w-7 group-hover:rotate-90 transition-transform" />
+        <div className="absolute right-16 bg-on-surface text-surface-container-lowest text-xs font-bold py-2 px-4 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+          New Clinical Note
+        </div>
+      </button>
+    </SidebarProvider>
   )
 }
 

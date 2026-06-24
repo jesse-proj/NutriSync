@@ -3,6 +3,8 @@ from sqlmodel import Session
 from pydantic import BaseModel
 import requests
 import math
+import io
+from PIL import Image
 
 from app.database import get_session
 from app.models import User, UserRole, FoodLogs
@@ -36,6 +38,26 @@ async def log_food_photo(
     file_bytes = await file.read()
     mime_type = file.content_type or "image/jpeg"
 
+    # Compress image if it exceeds 1MB (LogMeal limit)
+    if len(file_bytes) > 1000000:
+        image = Image.open(io.BytesIO(file_bytes))
+        if image.mode in ("RGBA", "P"):
+            image = image.convert("RGB")
+        
+        # Resize to max 1024x1024 while maintaining aspect ratio
+        image.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+        
+        buffer = io.BytesIO()
+        image.save(buffer, format="JPEG", quality=85)
+        file_bytes = buffer.getvalue()
+        mime_type = "image/jpeg"
+        
+        # If still too large, compress further
+        if len(file_bytes) > 1000000:
+            buffer = io.BytesIO()
+            image.save(buffer, format="JPEG", quality=60)
+            file_bytes = buffer.getvalue()
+
     # Call LogMeal Segmentation Endpoint
     url = "https://api.logmeal.es/v2/image/segmentation/complete"
     headers = {"Authorization": f"Bearer {settings.LOGMEAL_API_KEY}"}
@@ -45,8 +67,13 @@ async def log_food_photo(
         response = requests.post(url, headers=headers, files=files)
         response.raise_for_status()
         data = response.json()
+    except requests.exceptions.HTTPError as e:
+        error_msg = f"LogMeal API HTTP Error: {response.status_code} - {response.text}"
+        print(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
     except Exception as e:
         # Strict failure as requested
+        print(f"LogMeal Exception: {str(e)}")
         raise HTTPException(status_code=500, detail=f"LogMeal API Error: {str(e)}")
 
     # Parse and aggregate macronutrients
@@ -68,22 +95,18 @@ async def log_food_photo(
         if recognition:
             dish_names.append(recognition[0].get('name', 'Unknown'))
         
-        # Aggregate nutritional info
-        nutrients = segment.get('nutritional_info', {})
-        total_calories += nutrients.get('calories', 0.0)
-        total_carbs += nutrients.get('macronutrients', {}).get('carbohydrates', 0.0)
-        total_proteins += nutrients.get('macronutrients', {}).get('proteins', 0.0)
-        total_fat += nutrients.get('macronutrients', {}).get('fat', 0.0)
+        # Aggregate nutritional info safely handling explicit nulls
+        nutrients = segment.get('nutritional_info') or {}
+        total_calories += nutrients.get('calories') or 0.0
         
-        # LogMeal provides micronutrients in a separate dict or at the root level depending on the exact response structure.
-        # Assuming typical structure for micronutrients if available, otherwise NaN
-        micronutrients = nutrients.get('micronutrients', {})
+        macronutrients = nutrients.get('macronutrients') or {}
+        total_carbs += macronutrients.get('carbohydrates') or 0.0
+        total_proteins += macronutrients.get('proteins') or 0.0
+        total_fat += macronutrients.get('fat') or 0.0
         
-        sodium_val = micronutrients.get('sodium')
-        total_sodium += sodium_val if sodium_val is not None else 0.0
-        
-        potassium_val = micronutrients.get('potassium')
-        total_potassium += potassium_val if potassium_val is not None else 0.0
+        micronutrients = nutrients.get('micronutrients') or {}
+        total_sodium += micronutrients.get('sodium') or 0.0
+        total_potassium += micronutrients.get('potassium') or 0.0
 
     final_description = ", ".join(dish_names) if dish_names else "Unknown Food"
 
