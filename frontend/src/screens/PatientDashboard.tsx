@@ -16,13 +16,15 @@ import {
   Pill,
   Droplet,
   Lightbulb,
-  Accessibility,
+  Eye,
   X,
   Send,
   CheckCircle
 } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
+import { ScrollArea, ScrollBar } from '../components/ui/scroll-area'
+import logoBrand from '../assets/nutrisync.png'
 
 interface Targets {
   sodium_mg: number;
@@ -114,6 +116,18 @@ const PatientDashboard = () => {
       document.documentElement.classList.remove('text-lg')
     }
   }, [isAccessibleText])
+
+  // Prevent page scrolling when chatbot is open
+  useEffect(() => {
+    if (isChatOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isChatOpen])
 
   // Consumed calculations
   const consumedCalories = logs.reduce((sum, log) => sum + log.calories_kcal, 0)
@@ -250,7 +264,7 @@ const PatientDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background text-on-surface flex flex-col font-sans relative">
+    <div className={`min-h-screen bg-background text-on-surface flex flex-col font-sans relative ${isChatOpen ? 'overflow-hidden' : ''}`}>
       {/* Hidden input for meal photo logging */}
       <input
         type="file"
@@ -273,8 +287,7 @@ const PatientDashboard = () => {
         <nav className="flex justify-between items-center h-16 px-6 max-w-7xl mx-auto">
           <div className="flex items-center gap-8">
             <span className="text-xl font-bold text-primary flex items-center gap-2">
-              <Heart className="h-6 w-6" />
-              NutriSync RPM
+              <img src={logoBrand} className='h-12 w-17' alt="logo" />
             </span>
             <div className="hidden md:flex gap-6 items-center">
               <a className="text-primary font-semibold border-b-2 border-primary pb-1 text-sm transition-all" href="#">Home</a>
@@ -316,7 +329,8 @@ const PatientDashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow max-w-7xl mx-auto w-full px-6 py-8">
+      <ScrollArea className="flex-grow w-full">
+      <main className="max-w-7xl mx-auto w-full px-6 py-8">
 
         {/* Personalized Header */}
         <div className="mb-8">
@@ -545,9 +559,9 @@ const PatientDashboard = () => {
               </Button>
               <Button
                 onClick={() => setIsChatOpen(true)}
-                className="bg-secondary text-on-secondary h-14 rounded-2xl flex items-center justify-center gap-3 font-semibold text-sm shadow-lg shadow-secondary/20 hover:opacity-95 transition-all border-none cursor-pointer"
+                className="bg-secondary text-on-secondary h-14 rounded-2xl flex items-center justify-center gap-3 font-semibold text-sm shadow-lg shadow-secondary/20 hover:bg-gray-500 hover:opacity-95 transition-all border-none cursor-pointer"
               >
-                <MessageSquare className="h-5 w-5" />
+                <MessageSquare className="h-5 w-5 "  />
                 Ask NutriGabay
               </Button>
             </div>
@@ -564,7 +578,7 @@ const PatientDashboard = () => {
                 {/* Losartan Medication Reminder */}
                 <div className="flex gap-4 items-start">
                   <div className="w-10 h-10 bg-primary-container text-on-primary-container rounded-xl flex items-center justify-center shrink-0">
-                    <Pill className="h-5 w-5" />
+                    <Pill className="h-5 w-5 text-white" />
                   </div>
                   <div className="flex-grow">
                     <p className="text-sm font-bold text-on-surface">Losartan (50mg)</p>
@@ -645,7 +659,7 @@ const PatientDashboard = () => {
                       { text: "Magandang tanong! Upang mapanatili ang sarap ng Pinakbet nang hindi gumagamit ng maalat na bagoong, maaari mong gamitin ang pinaghalong calamansi, bawang, at kaunting patis na may mababang sodium. Pwede rin nating dagdagan ng gata upang maging malasa ang sabaw. Gusto mo bang bigyan kita ng kumpletong recipe?", isUser: false }
                     ])
                   }}
-                  className="bg-on-primary text-primary px-5 py-2 rounded-xl font-semibold text-xs border-none hover:bg-primary-fixed transition-colors cursor-pointer"
+                  className="bg-on-primary text-primary px-5 py-2 rounded-xl font-semibold text-xs border-none hover:bg-gray-800 transition-colors cursor-pointer"
                 >
                   Explore Recipes
                 </button>
@@ -659,7 +673,7 @@ const PatientDashboard = () => {
       </main>
 
       {/* Footer */}
-      <footer className="w-full mt-auto bg-surface-container-low border-t border-outline-variant/50">
+      <footer className="w-full bg-surface-container-low border-t border-outline-variant/50">
         <div className="flex flex-col items-center py-8 px-6 w-full max-w-7xl mx-auto text-center gap-4">
           <span className="text-sm font-bold text-primary">NutriSync RPM</span>
           <div className="flex gap-6">
@@ -672,6 +686,8 @@ const PatientDashboard = () => {
           </p>
         </div>
       </footer>
+      <ScrollBar orientation="vertical" />
+      </ScrollArea>
 
       {/* Text Size Toggle Utility (Accessibility FAB) */}
       <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-2">
@@ -684,7 +700,7 @@ const PatientDashboard = () => {
             }`}
           title="Toggle Large Text Accessibility"
         >
-          {showCheckIcon ? <CheckCircle className="h-5 w-5 animate-ping" /> : <Accessibility className="h-5 w-5" />}
+          {showCheckIcon ? <CheckCircle className="h-5 w-5 animate-ping" /> : <Eye className="h-5 w-5" />}
         </button>
       </div>
 
@@ -720,9 +736,10 @@ const PatientDashboard = () => {
             </div>
 
             {/* Conversation Messages Box */}
-            <div className="flex-grow p-5 space-y-4 overflow-y-auto bg-background flex flex-col-reverse">
-              {/* Flex direction reversed to always keep latest message at the bottom while scrolling */}
-              <div className="flex flex-col gap-4">
+            <ScrollArea className="flex-grow bg-background w-full overflow-hidden">
+              <div className="p-5 space-y-4 flex flex-col-reverse">
+                {/* Flex direction reversed to always keep latest message at the bottom while scrolling */}
+                <div className="flex flex-col gap-4">
                 {chatMessages.map((msg, idx) => (
                   <div
                     key={idx}
@@ -740,8 +757,10 @@ const PatientDashboard = () => {
                     <span className="text-xs font-medium">Nag-iisip si NutriGabay...</span>
                   </div>
                 )}
+                </div>
               </div>
-            </div>
+              <ScrollBar orientation="vertical" />
+            </ScrollArea>
 
             {/* Chat Input Area */}
             <div className="p-4 border-t border-outline-variant bg-surface-container-lowest flex gap-2">
