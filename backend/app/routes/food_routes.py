@@ -54,6 +54,10 @@ async def log_food_photo(
     total_proteins = 0.0
     total_fat = 0.0
 
+    segments = data.get('segmentation_results', [])
+    if not segments:
+        raise HTTPException(status_code=400, detail="No food detected in the image.")
+
     for segment in segments:
         dish_names.append(segment.get("name", "Unknown"))
 
