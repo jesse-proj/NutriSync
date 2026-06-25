@@ -14,6 +14,9 @@ import {
 import { useAuth } from "../context/AuthContext";
 import logoBrand from "../assets/nutrisync.png";
 
+const PATIENT_COLOR = '#0058bc'
+const CLINICIAN_COLOR = '#00B4AD'
+
 const RegisterPage: React.FC = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -33,6 +36,9 @@ const RegisterPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // ponytail: derive accent from current role; every element reads from this single source
+  const accent = role === 'clinician' ? CLINICIAN_COLOR : PATIENT_COLOR
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -41,7 +47,6 @@ const RegisterPage: React.FC = () => {
       setError("Please fill in all fields.");
       return;
     }
-
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -86,6 +91,19 @@ const RegisterPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Shared input class — focus border handled via inline style so it reacts to accent immediately
+  const inputBase =
+    'w-full pl-9 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm text-on-surface outline-none placeholder:text-outline/50 transition-colors duration-300'
+
+  const iconStyle: React.CSSProperties = {
+    color: accent,
+    transition: 'color 0.3s ease',
+  }
+
+  const inputStyle: React.CSSProperties = {
+    // We handle focus with a global style block injected below
+  }
 
   return (
     <main className="flex min-h-screen w-full items-center justify-center bg-radial from-[#e8eeff] to-[#f9f9ff] py-8 px-4">
@@ -145,6 +163,7 @@ const RegisterPage: React.FC = () => {
             </button>
           </div>
 
+          {/* Error */}
           {error && (
             <div
               className="w-full p-3 text-xs text-red-800 bg-red-50 rounded-lg border border-red-200"
@@ -165,11 +184,11 @@ const RegisterPage: React.FC = () => {
                 Full Name
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-                  <User className="h-4 w-4" />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2">
+                  <User className="h-4 w-4 reg-icon" style={inputStyle} />
                 </span>
                 <input
-                  className="w-full pl-9 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50"
+                  className={`${inputBase} reg-input`}
                   id="fullName"
                   placeholder="Juan dela Cruz"
                   type="text"
@@ -180,7 +199,7 @@ const RegisterPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Email Address */}
+            {/* Email */}
             <div className="flex flex-col gap-0.5">
               <label
                 className="text-label-sm font-label-sm text-on-surface-variant ml-1"
@@ -189,11 +208,11 @@ const RegisterPage: React.FC = () => {
                 Email Address
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-                  <Mail className="h-4 w-4" />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2">
+                  <Mail className="h-4 w-4 reg-icon" />
                 </span>
                 <input
-                  className="w-full pl-9 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50"
+                  className={`${inputBase} reg-input`}
                   id="email"
                   placeholder="name@company.com"
                   type="email"
@@ -214,11 +233,11 @@ const RegisterPage: React.FC = () => {
                   Password
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-                    <Lock className="h-4 w-4" />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2">
+                    <Lock className="h-4 w-4 reg-icon" />
                   </span>
                   <input
-                    className="w-full pl-9 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50"
+                    className={`${inputBase} reg-input`}
                     id="password"
                     placeholder="••••••••"
                     type="password"
@@ -236,11 +255,11 @@ const RegisterPage: React.FC = () => {
                   Confirm Password
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-                    <ShieldCheck className="h-4 w-4" />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2">
+                    <ShieldCheck className="h-4 w-4 reg-icon" />
                   </span>
                   <input
-                    className="w-full pl-9 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50"
+                    className={`${inputBase} reg-input`}
                     id="confirmPassword"
                     placeholder="••••••••"
                     type="password"
@@ -370,7 +389,7 @@ const RegisterPage: React.FC = () => {
               <div className="flex items-start gap-2">
                 <div className="flex items-center h-5 mt-0.5">
                   <input
-                    className="w-4 h-4 text-primary border-outline-variant rounded focus:ring-primary-container cursor-pointer transition-colors"
+                    className="w-4 h-4 border-outline-variant rounded cursor-pointer reg-checkbox"
                     id="privacy"
                     type="checkbox"
                     checked={consent}
@@ -387,9 +406,9 @@ const RegisterPage: React.FC = () => {
               </div>
             )}
 
-            {/* Submit Action */}
+            {/* Submit */}
             <button
-              className="w-full mt-1 bg-primary hover:bg-primary-container text-white font-bold py-2.5 rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-50"
+              className="reg-submit w-full mt-1 text-white font-bold py-2.5 rounded-xl shadow-md active:scale-[0.98] flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-50"
               type="submit"
               disabled={loading}
             >
@@ -402,14 +421,11 @@ const RegisterPage: React.FC = () => {
             </button>
           </form>
 
-          {/* Footer Login Link */}
+          {/* Footer */}
           <div className="text-center">
             <p className="text-xs text-on-surface-variant">
-              Already have an account?
-              <Link
-                className="text-primary font-bold hover:underline ml-1"
-                to="/login"
-              >
+              Already have an account?{' '}
+              <Link className="reg-link font-bold hover:underline" to="/login">
                 Log in
               </Link>
             </p>
