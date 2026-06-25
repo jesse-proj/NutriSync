@@ -1,7 +1,8 @@
 from datetime import datetime, time, timedelta, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from app.auth import get_current_user
@@ -14,6 +15,7 @@ from app.models import (
     PatientClinicianLink,
     User,
     UserRole,
+    WeightLog,
 )
 from app.services.ai_summary import generate_nutrition_summary
 
@@ -258,5 +260,62 @@ def get_my_reminders(
             ClinicalReminder.is_active == True,
         )
         .order_by(ClinicalReminder.created_at.desc())
+    )
+    return session.exec(statement).all()
+
+
+# ── Weight Logging ──────────────────────────────────────────────────
+
+
+class WeightIn(BaseModel):
+    weight_kg: float
+
+
+@router.post("/weight", response_model=WeightLog)
+def log_weight(
+    data: WeightIn,
+    current_user: User = Depends(get_current_patient),
+    session: Session = Depends(get_session),
+):
+    """Log or update today's weight for the current patient."""
+    if data.weight_kg <= 0 or data.weight_kg > 500:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Weight must be between 0 and 500 kg.",
+        )
+    # Check if already logged today → update
+    now_utc = datetime.now(timezone.utc)
+    today_start = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+    existing = session.exec(
+        select(WeightLog)
+        .where(WeightLog.patient_id == current_user.id)
+        .where(WeightLog.logged_at >= today_start)
+    ).first()
+    if existing:
+        existing.weight_kg = data.weight_kg
+        session.add(existing)
+        session.commit()
+        session.refresh(existing)
+        return existing
+    new_entry = WeightLog(patient_id=current_user.id, weight_kg=data.weight_kg)
+    session.add(new_entry)
+    session.commit()
+    session.refresh(new_entry)
+    return new_entry
+
+
+@router.get("/weight", response_model=List[WeightLog])
+def get_weight_history(
+    days: int = 30,
+    current_user: User = Depends(get_current_patient),
+    session: Session = Depends(get_session),
+):
+    """Return weight history for the last N days."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    statement = (
+        select(WeightLog)
+        .where(WeightLog.patient_id == current_user.id)
+        .where(WeightLog.logged_at >= cutoff)
+        .order_by(WeightLog.logged_at.asc())
     )
     return session.exec(statement).all()

@@ -48,6 +48,10 @@ def _migrate_db() -> None:
                         conn.execute(
                             text(f"ALTER TABLE users ADD COLUMN {col} {dtype}")
                         )
+        if table_name == "weight_logs":
+            if "weight_kg" not in cols:
+                with engine.begin() as conn:
+                    conn.execute(text("DROP TABLE IF EXISTS weight_logs"))
 
 
 def create_db_and_tables() -> None:
