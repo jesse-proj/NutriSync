@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckCircle, Sparkles, TrendingDown } from "lucide-react";
+import { CheckCircle, Sparkles, TrendingDown, HeartPulse } from "lucide-react";
 import { ScrollArea, ScrollBar } from "../components/ui/scroll-area";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Checkbox } from "../components/ui/checkbox";
