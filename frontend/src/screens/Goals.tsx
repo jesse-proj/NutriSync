@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { CheckCircle, HeartPulse, Sparkles } from "lucide-react";
+import { CheckCircle, Sparkles, TrendingDown } from "lucide-react";
 import { ScrollArea, ScrollBar } from "../components/ui/scroll-area";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Checkbox } from "../components/ui/checkbox";
 import Footer from "../components/Footer";
 import PatientNavbar from "../components/PatientNavbar";
-
 import { apiFetch } from "../api/client";
 
 // ponytail: Goals.tsx uses simple React state and inline Tailwind styles for custom progress/charts
@@ -15,7 +14,12 @@ const Goals = () => {
     document.title = "Goals | NutriSync";
   }, []);
 
-  const [weight] = useState<number | null>(null);
+  const [weight, setWeight] = useState<number | null>(null);
+  const [weightHistory, setWeightHistory] = useState<
+    { weight_kg: number; logged_at: string }[]
+  >([]);
+  const [showWeightInput, setShowWeightInput] = useState(false);
+  const [weightInput, setWeightInput] = useState("");
   const [sodiumConsumed, setSodiumConsumed] = useState(0);
   const [sodiumTarget, setSodiumTarget] = useState<number | null>(null);
   const [walkingTarget] = useState(5.0);
@@ -30,12 +34,20 @@ const Goals = () => {
   // ponytail: refetch when PatientDashboard logs a meal via localStorage event
   const fetchData = async () => {
     try {
-      const [targetsData, logs] = await Promise.all([
+      const [targetsData, logs, weightData] = await Promise.all([
         apiFetch<{ sodium_mg: number }>("/api/patients/targets"),
         apiFetch<
           { calories_kcal: number; sodium_mg: number; logged_at: string }[]
         >("/api/patients/logs?today=true"),
+        apiFetch<{ weight_kg: number; logged_at: string }[]>(
+          "/api/patients/weight?days=30",
+        ),
       ]);
+      if (weightData && weightData.length > 0) {
+        const latest = weightData[weightData.length - 1];
+        setWeight(latest.weight_kg);
+        setWeightHistory(weightData);
+      }
       if (targetsData?.sodium_mg != null) {
         setSodiumTarget(targetsData.sodium_mg);
       }
@@ -106,7 +118,7 @@ const Goals = () => {
 
           {/* Three Column Dashboard Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Column: Weight Trends (Bento Style) */}
+            {/* Left Column: Weight Trends */}
             <div className="lg:col-span-4 flex flex-col">
               <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/30 flex flex-col h-full text-left">
                 <div className="flex justify-between items-start mb-4">
@@ -117,7 +129,7 @@ const Goals = () => {
                     {weight !== null ? `${weight} kg` : "No data"}
                   </span>
                 </div>
-                <div className="flex items-baseline gap-1 mb-8">
+                <div className="flex items-baseline gap-1 mb-4">
                   <span className="text-4xl font-extrabold text-primary tracking-tight">
                     {loading ? "—" : weight !== null ? weight : "—"}
                   </span>
@@ -126,27 +138,113 @@ const Goals = () => {
                   </span>
                 </div>
 
-                {/* Simulated Chart Bars */}
-                <div className="grow min-h-50 relative flex items-end justify-between gap-2 px-1 pt-6">
-                  <div className="w-full absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
-                    <div className="border-t border-outline"></div>
-                    <div className="border-t border-outline"></div>
-                    <div className="border-t border-outline"></div>
-                    <div className="border-t border-outline"></div>
+                {/* Real weight chart from history */}
+                {weightHistory.length > 1 ? (
+                  <>
+                    <div className="flex-grow min-h-[160px] relative flex items-end justify-between gap-1 px-1 pt-4">
+                      <div className="w-full absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+                        <div className="border-t border-outline"></div>
+                        <div className="border-t border-outline"></div>
+                        <div className="border-t border-outline"></div>
+                        <div className="border-t border-outline"></div>
+                      </div>
+                      {(() => {
+                        const wts = weightHistory.map((w) => w.weight_kg);
+                        const min = Math.min(...wts);
+                        const max = Math.max(...wts);
+                        const range = max - min || 1;
+                        return weightHistory.map((w, i) => {
+                          const pct = ((w.weight_kg - min) / range) * 100;
+                          return (
+                            <div
+                              key={i}
+                              className="w-full bg-primary/70 rounded-t-lg transition-all hover:bg-primary"
+                              style={{ height: `${Math.max(pct, 10)}%` }}
+                              title={`${w.weight_kg}kg — ${new Date(w.logged_at).toLocaleDateString()}`}
+                            />
+                          );
+                        });
+                      })()}
+                    </div>
+                    <div className="flex justify-between mt-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                      <span>
+                        {weightHistory.length > 7
+                          ? `${weightHistory.length}d ago`
+                          : "Start"}
+                      </span>
+                      <span>Now</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-grow min-h-[120px] flex items-center justify-center text-sm text-on-surface-variant">
+                    {weightHistory.length === 1
+                      ? "Log another weight to see trends"
+                      : "No weight data yet"}
                   </div>
-                  <div className="w-full bg-primary-fixed-dim/40 rounded-t-lg transition-all hover:bg-primary h-[85%]"></div>
-                  <div className="w-full bg-primary-fixed-dim/40 rounded-t-lg transition-all hover:bg-primary h-[82%]"></div>
-                  <div className="w-full bg-primary-fixed-dim/40 rounded-t-lg transition-all hover:bg-primary h-[78%]"></div>
-                  <div className="w-full bg-primary-fixed-dim/40 rounded-t-lg transition-all hover:bg-primary h-[80%]"></div>
-                  <div className="w-full bg-primary h-[72%] rounded-t-lg"></div>
-                </div>
-                <div className="flex justify-between mt-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
-                  <span>Wk 1</span>
-                  <span>Wk 2</span>
-                  <span>Wk 3</span>
-                  <span>Wk 4</span>
-                  <span>Now</span>
-                </div>
+                )}
+
+                {/* Weight input */}
+                {showWeightInput ? (
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const val = parseFloat(weightInput);
+                      if (isNaN(val) || val <= 0) return;
+                      try {
+                        await apiFetch("/api/patients/weight", {
+                          json: { weight_kg: val },
+                          method: "POST",
+                        });
+                        setWeight(val);
+                        setShowWeightInput(false);
+                        setWeightInput("");
+                        fetchData();
+                        window.dispatchEvent(
+                          new CustomEvent("nutrisync:meal-logged"),
+                        );
+                      } catch {
+                        alert("Failed to log weight");
+                      }
+                    }}
+                    className="mt-4 flex gap-2"
+                  >
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="1"
+                      max="500"
+                      placeholder="Weight (kg)"
+                      value={weightInput}
+                      onChange={(e) => setWeightInput(e.target.value)}
+                      autoFocus
+                      className="flex-1 px-3 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:opacity-90 transition-opacity"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowWeightInput(false)}
+                      className="px-3 py-2 border border-outline-variant rounded-lg text-sm hover:bg-surface-container"
+                    >
+                      Cancel
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setWeightInput(weight !== null ? String(weight) : "");
+                      setShowWeightInput(true);
+                    }}
+                    className="mt-4 flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:opacity-90 transition-opacity"
+                  >
+                    <TrendingDown className="h-4 w-4" />
+                    {weight !== null ? "Update Weight" : "Log Weight"}
+                  </button>
+                )}
               </div>
             </div>
 

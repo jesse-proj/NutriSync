@@ -138,6 +138,15 @@ class ClinicalReminder(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=utc_now)
 
 
+class WeightLog(SQLModel, table=True):
+    __tablename__ = "weight_logs"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    patient_id: int = Field(foreign_key="users.id", index=True)
+    weight_kg: float = Field(nullable=False)
+    logged_at: datetime = Field(default_factory=utc_now)
+
+
 class ChatMessage(SQLModel, table=True):
     __tablename__ = "chat_messages"
 
