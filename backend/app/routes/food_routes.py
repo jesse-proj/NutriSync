@@ -1,9 +1,9 @@
 import os
 import uuid
-from datetime import datetime, time, timezone
+from datetime import datetime, time, timezone, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Request
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -90,6 +90,7 @@ async def analyze_food_photo(
 @router.post("/log", response_model=FoodAnalysisResponse)
 async def log_food(
     data: FoodAnalysisResponse,
+    request: Request,
     current_user: User = Depends(get_current_patient),
     session: Session = Depends(get_session),
 ):
@@ -115,10 +116,25 @@ async def log_food(
     stmt = select(DietaryTargets).where(DietaryTargets.patient_id == current_user.id)
     targets = session.exec(stmt).first()
     if targets:
-        # Calculate daily cumulative values (today in UTC)
-        today_start = datetime.combine(
-            datetime.now(timezone.utc).date(), time.min
-        ).replace(tzinfo=timezone.utc)
+        # Calculate daily cumulative values relative to client's timezone offset
+        offset_header = request.headers.get("X-Timezone-Offset")
+        if offset_header:
+            try:
+                offset_minutes = int(offset_header)
+                # Negate offset because JS has negative offsets for timezones east of UTC
+                tz = timezone(timedelta(minutes=-offset_minutes))
+                local_now = datetime.now(tz)
+                local_midnight = datetime.combine(local_now.date(), time.min).replace(tzinfo=tz)
+                today_start = local_midnight.astimezone(timezone.utc)
+            except Exception:
+                today_start = datetime.combine(
+                    datetime.now(timezone.utc).date(), time.min
+                ).replace(tzinfo=timezone.utc)
+        else:
+            today_start = datetime.combine(
+                datetime.now(timezone.utc).date(), time.min
+            ).replace(tzinfo=timezone.utc)
+
         today_logs = session.exec(
             select(FoodLogs)
             .where(FoodLogs.patient_id == current_user.id)

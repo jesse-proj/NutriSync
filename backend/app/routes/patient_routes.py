@@ -1,6 +1,7 @@
-from typing import List
+from datetime import datetime, time, timezone, timedelta
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session, select
 
 from app.auth import get_current_user
@@ -44,10 +45,12 @@ def get_patient_targets(
 
 @router.get("/logs", response_model=List[FoodLogs])
 def get_patient_logs(
-    limit: int = 10,
+    request: Request,
+    limit: int = 50,
     current_user: User = Depends(get_current_patient),
     session: Session = Depends(get_session),
 ):
+    """Return logs; limit defaults to 50 so the client can do local-date filtering."""
     statement = (
         select(FoodLogs)
         .where(FoodLogs.patient_id == current_user.id)

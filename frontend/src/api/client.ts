@@ -13,6 +13,8 @@ export async function apiFetch<T = any>(endpoint: string, options: FetchOptions 
   const defaultHeaders: HeadersInit = {
     ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    'X-Timezone-Offset': String(new Date().getTimezoneOffset()),
+    'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
   };
 
   const config: RequestInit = {

@@ -149,17 +149,35 @@ const PatientDashboard = () => {
     fetchReminders();
   }, []);
 
-  const consumedCalories = logs.reduce(
+  // Filter logs to only today's local-date entries (ponytail: local midnight boundary)
+  const localMidnight = new Date();
+  localMidnight.setHours(0, 0, 0, 0);
+  const todayLogs = logs.filter(
+    (log) => new Date(log.logged_at) >= localMidnight,
+  );
+
+  // Friendly date label e.g. "Today, Jun 25"
+  const todayLabel = new Date().toLocaleDateString("en-US", {
+    weekday: undefined,
+    month: "short",
+    day: "numeric",
+  });
+
+  // Day-end summary: show after 23:00 local time
+  const nowHour = new Date().getHours();
+  const showDayEndSummary = nowHour >= 23;
+
+  const consumedCalories = todayLogs.reduce(
     (sum, log) => sum + log.calories_kcal,
     0,
   );
-  const consumedSodium = logs.reduce((sum, log) => sum + log.sodium_mg, 0);
-  const consumedCarbs = logs.reduce((sum, log) => sum + log.carbs_g, 0);
-  const consumedProtein = logs.reduce(
+  const consumedSodium = todayLogs.reduce((sum, log) => sum + log.sodium_mg, 0);
+  const consumedCarbs = todayLogs.reduce((sum, log) => sum + log.carbs_g, 0);
+  const consumedProtein = todayLogs.reduce(
     (sum, log) => sum + (log.protein_g || 0),
     0,
   );
-  const consumedFat = logs.reduce((sum, log) => sum + (log.fat_g || 0), 0);
+  const consumedFat = todayLogs.reduce((sum, log) => sum + (log.fat_g || 0), 0);
 
   const targetProtein =
     targets.protein_g || Math.round((targets.calories_kcal * 0.2) / 4) || 120;
@@ -186,7 +204,7 @@ const PatientDashboard = () => {
   const strokeDashoffset = 264 - 264 * calorieProgressRatio;
 
   const isSodiumWarning = consumedSodium > targets.sodium_mg * 0.6;
-  const highSodiumMeal = logs.find((log) => log.sodium_mg > 400);
+  const highSodiumMeal = todayLogs.find((log) => log.sodium_mg > 400);
   const sodiumAlertMessage = highSodiumMeal
     ? `Your recent meal (${highSodiumMeal.description}) was high in sodium. Try drinking extra water this afternoon.`
     : "Your meals logged today are within healthy sodium thresholds. Excellent choice!";
@@ -196,7 +214,7 @@ const PatientDashboard = () => {
     try {
       const [fetchedTargets, fetchedLogs] = await Promise.all([
         apiFetch("/api/patients/targets"),
-        apiFetch("/api/patients/logs?limit=10"),
+        apiFetch("/api/patients/logs?limit=50"),
       ]);
       if (fetchedTargets) setTargets(fetchedTargets);
       if (fetchedLogs) setLogs(fetchedLogs);
@@ -500,9 +518,9 @@ const PatientDashboard = () => {
               Good morning, {user?.full_name?.split(" ")[0] || "Juan"}!
             </h1>
             <p className="text-lg text-on-surface-variant mt-1.5">
-              {logs.length === 0
+              {todayLogs.length === 0
                 ? "You haven't logged any meals today. Let's start healthy by logging your first meal!"
-                : `You've logged ${logs.length} meal${logs.length > 1 ? "s" : ""} today.`}
+                : `You've logged ${todayLogs.length} meal${todayLogs.length > 1 ? "s" : ""} today.`}
             </p>
           </div>
 
@@ -533,6 +551,37 @@ const PatientDashboard = () => {
                 </div>
               </AlertDescription>
             </Alert>
+          )}
+
+          {/* Day-end summary banner — shown only after 11pm local time */}
+          {showDayEndSummary && todayLogs.length > 0 && (
+            <div className="mb-8 flex items-start gap-3 p-4 rounded-2xl border border-outline-variant/30 bg-surface-container shadow-sm">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div className="flex-grow min-w-0">
+                <p className="text-sm font-bold text-on-surface">
+                  Day Summary — {todayLabel}
+                </p>
+                <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
+                  You finished the day at{" "}
+                  <span className="font-semibold text-on-surface">
+                    {Math.round(consumedCalories).toLocaleString()} kcal
+                  </span>
+                  {isCalorieSurpassed ? (
+                    <span className="text-error font-semibold">
+                      {" "}—{" "}
+                      {Math.round(consumedCalories - targets.calories_kcal).toLocaleString()} kcal over goal.
+                    </span>
+                  ) : (
+                    <span className="text-secondary font-semibold">
+                      {" "}—{" "}
+                      {Math.round(caloriesLeft).toLocaleString()} kcal under goal. Great job!
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
           )}
 
           {/* Dashboard Grid */}
@@ -651,9 +700,15 @@ const PatientDashboard = () => {
                 <div className="lg:col-span-2 flex flex-col gap-6">
                   {/* Macronutrient Progress */}
                   <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30">
-                    <h3 className="text-lg font-bold text-on-surface mb-6">
-                      Macronutrient Progress
-                    </h3>
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-lg font-bold text-on-surface">
+                        Macronutrient Progress
+                      </h3>
+                      <span className="inline-flex items-center gap-1.5 text-xs text-on-surface-variant bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant/20">
+                        <Calendar className="h-3.5 w-3.5" />
+                        Today, {todayLabel}
+                      </span>
+                    </div>
                     <div className="space-y-5">
                       {/* Protein progress */}
                       <div>
@@ -723,13 +778,14 @@ const PatientDashboard = () => {
                       <h3 className="text-lg font-bold text-on-surface">
                         Recent Meals
                       </h3>
-                      <span className="text-xs text-primary font-semibold">
-                        Today
+                      <span className="inline-flex items-center gap-1.5 text-xs text-on-surface-variant bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant/20">
+                        <Clock className="h-3.5 w-3.5" />
+                        {todayLabel}
                       </span>
                     </div>
-                    {logs.length === 0 ? (
+                    {todayLogs.length === 0 ? (
                       <div className="p-8 bg-surface-container-low border border-dashed border-outline-variant rounded-2xl text-center text-on-surface-variant text-sm flex flex-col items-center justify-center gap-3">
-                        <span className="h-8 w-8 text-outline">🍽</span>
+                        <Utensils className="h-8 w-8 text-outline" />
                         <div>
                           <p className="font-semibold">No meals logged today</p>
                           <p className="text-xs mt-0.5">
@@ -748,7 +804,7 @@ const PatientDashboard = () => {
                     ) : (
                       <>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                          {logs
+                          {todayLogs
                             .slice(
                               (currentPage - 1) * mealsPerPage,
                               currentPage * mealsPerPage,
@@ -767,7 +823,7 @@ const PatientDashboard = () => {
                               />
                             ))}
                         </div>
-                        {logs.length > mealsPerPage && (
+                        {todayLogs.length > mealsPerPage && (
                           <div className="flex items-center justify-between mt-4 border-t border-outline-variant/30 pt-4">
                             <Button
                               variant="outline"
@@ -779,9 +835,9 @@ const PatientDashboard = () => {
                             >
                               Previous
                             </Button>
-                            <span className="text-sm text-on-surface-variant font-medium">
+                            <span className="text-xs text-on-surface-variant">
                               Page {currentPage} of{" "}
-                              {Math.ceil(logs.length / mealsPerPage)}
+                              {Math.ceil(todayLogs.length / mealsPerPage)}
                             </span>
                             <Button
                               variant="outline"
@@ -790,13 +846,13 @@ const PatientDashboard = () => {
                                 setCurrentPage((prev) =>
                                   Math.min(
                                     prev + 1,
-                                    Math.ceil(logs.length / mealsPerPage),
+                                    Math.ceil(todayLogs.length / mealsPerPage),
                                   ),
                                 )
                               }
                               disabled={
                                 currentPage ===
-                                Math.ceil(logs.length / mealsPerPage)
+                                Math.ceil(todayLogs.length / mealsPerPage)
                               }
                             >
                               Next
