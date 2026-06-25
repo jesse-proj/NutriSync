@@ -859,17 +859,7 @@ const ClinicianDashboard = () => {
           </div>
         </SidebarInset>
 
-        {/* Floating Add Patient Button */}
-        <button
-          onClick={() => setActiveView("patients")}
-          className="fixed bottom-8 right-8 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary/90 active:scale-90 transition-all z-50 group border-none cursor-pointer"
-          title="New Patient"
-        >
-          <Plus className="h-7 w-7 group-hover:rotate-90 transition-transform" />
-          <div className="absolute right-16 bg-on-surface text-surface-container-lowest text-xs font-bold py-2 px-4 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-            New Patient
-          </div>
-        </button>
+
       </SidebarProvider>
 
       {/* DELETE CONFIRMATION DIALOG */}

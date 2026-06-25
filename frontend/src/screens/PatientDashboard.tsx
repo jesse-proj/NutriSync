@@ -833,7 +833,7 @@ const PatientDashboard = () => {
         {doctorChat.doctorProfile && (
           <button
             onClick={handleOpenDoctorChat}
-            className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all cursor-pointer border-none bg-secondary text-white relative"
+            className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all cursor-pointer border-none bg-primary text-on-primary relative"
             title="Chat with your Doctor"
           >
             <MessageSquare className="h-5 w-5" />
@@ -846,7 +846,7 @@ const PatientDashboard = () => {
         )}
         <button
           onClick={() => setIsChatOpen(true)}
-          className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all cursor-pointer border-none bg-primary-container text-white"
+          className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all cursor-pointer border-none bg-primary text-on-primary"
           title="Chat with NutriGabay AI"
         >
           <Sparkles className="h-5 w-5" />
@@ -932,7 +932,7 @@ const PatientDashboard = () => {
               <Button
                 onClick={handleSendMessage}
                 disabled={isChatLoading || !chatInput.trim()}
-                className="rounded-xl px-4"
+                className="rounded-xl px-4 h-auto bg-primary hover:bg-primary/90 text-on-primary border-none cursor-pointer"
               >
                 <Send className="h-4 w-4" />
               </Button>
@@ -951,7 +951,7 @@ const PatientDashboard = () => {
           <div className="relative w-full max-w-md bg-surface h-full shadow-2xl flex flex-col z-10 transition-transform duration-300 animate-slide-in-right">
             <div className="px-5 py-4 border-b border-outline-variant flex items-center justify-between bg-surface-container">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                   <MessageSquare className="h-4.5 w-4.5" />
                 </div>
                 <div>
@@ -999,7 +999,7 @@ const PatientDashboard = () => {
                       return (
                         <div
                           key={msg.id || idx}
-                          className={`p-3.5 rounded-2xl max-w-[85%] text-sm leading-relaxed shadow-xs ${isCurrentUser ? "bg-secondary text-white self-end rounded-tr-none" : "bg-surface-container-lowest text-on-surface self-start rounded-tl-none border border-outline-variant/15"}`}
+                          className={`p-3.5 rounded-2xl max-w-[85%] text-sm leading-relaxed shadow-xs ${isCurrentUser ? "bg-primary text-on-primary self-end rounded-tr-none" : "bg-surface-container-lowest text-on-surface self-start rounded-tl-none border border-outline-variant/15"}`}
                         >
                           <p>{msg.message}</p>
                           <span
@@ -1043,7 +1043,7 @@ const PatientDashboard = () => {
                 disabled={
                   doctorChat.isLoading || !doctorChat.doctorChatInput.trim()
                 }
-                className="rounded-xl px-4 bg-secondary hover:bg-secondary/90 text-white border-none cursor-pointer"
+                className="rounded-xl px-4 h-auto bg-primary hover:bg-primary/90 text-on-primary border-none cursor-pointer"
               >
                 <Send className="h-4 w-4" />
               </Button>
