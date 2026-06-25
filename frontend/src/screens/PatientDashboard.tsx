@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   Utensils,
   Info,
+  Check,
 } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
@@ -302,19 +303,19 @@ const PatientDashboard = () => {
             </div>
             <div className="bg-surface-container rounded-2xl p-4 flex flex-col gap-3.5 border border-outline-variant/10">
               <div className="flex gap-3 items-center text-xs">
-                <span className="h-4 w-4 text-primary shrink-0">✓</span>
+                <Check className="h-4 w-4 text-primary shrink-0" />
                 <span className="text-on-surface-variant">
                   Epektibo para sa pag-track ng iyong pagkain
                 </span>
               </div>
               <div className="flex gap-3 items-center text-xs">
-                <span className="h-4 w-4 text-primary shrink-0">✓</span>
+                <Check className="h-4 w-4 text-primary shrink-0" />
                 <span className="text-on-surface-variant">
                   Tumutulong na sundin ang limitasyon na ibinigay ng doktor
                 </span>
               </div>
               <div className="flex gap-3 items-center text-xs">
-                <span className="h-4 w-4 text-error shrink-0">✗</span>
+                <X className="h-4 w-4 text-error shrink-0" />
                 <span className="text-on-surface-variant">
                   Hindi pamalit sa medikal na konsultasyon
                 </span>
