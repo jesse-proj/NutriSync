@@ -121,7 +121,11 @@ const PatientNavbar = ({ activePage }: PatientNavbarProps) => {
                     alerts.map((alert) => (
                       <div key={alert.id} className="p-4 border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors flex justify-between items-start gap-3">
                         <div>
-                          <p className="text-xs text-on-surface-variant mb-1 font-semibold">{alert.alert_type.replace('_', ' ')}</p>
+                          <p className="text-xs text-on-surface-variant mb-1 font-semibold">
+                            {alert.alert_type.startsWith("CLINICIAN_LINK") 
+                              ? "Link Request" 
+                              : alert.alert_type.replace('_', ' ')}
+                          </p>
                           <p className="text-sm text-on-surface">{alert.message}</p>
                         </div>
                         <div className="flex gap-2 shrink-0">
