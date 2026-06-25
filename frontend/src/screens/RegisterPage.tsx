@@ -14,8 +14,8 @@ import {
 import { useAuth } from "../context/AuthContext";
 import logoBrand from "../assets/nutrisync.png";
 
-const PATIENT_COLOR = '#0058bc'
-const CLINICIAN_COLOR = '#00B4AD'
+const PATIENT_COLOR = "#0058bc";
+const CLINICIAN_COLOR = "#00B4AD";
 
 const RegisterPage: React.FC = () => {
   const { register } = useAuth();
@@ -37,7 +37,7 @@ const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   // ponytail: derive accent from current role; every element reads from this single source
-  const accent = role === 'clinician' ? CLINICIAN_COLOR : PATIENT_COLOR
+  const accent = role === "clinician" ? CLINICIAN_COLOR : PATIENT_COLOR;
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,16 +94,16 @@ const RegisterPage: React.FC = () => {
 
   // Shared input class — focus border handled via inline style so it reacts to accent immediately
   const inputBase =
-    'w-full pl-9 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm text-on-surface outline-none placeholder:text-outline/50 transition-colors duration-300'
+    "w-full pl-9 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm text-on-surface outline-none placeholder:text-outline/50 transition-colors duration-300";
 
   const iconStyle: React.CSSProperties = {
     color: accent,
-    transition: 'color 0.3s ease',
-  }
+    transition: "color 0.3s ease",
+  };
 
   const inputStyle: React.CSSProperties = {
     // We handle focus with a global style block injected below
-  }
+  };
 
   return (
     <main className="flex min-h-screen w-full items-center justify-center bg-radial from-[#e8eeff] to-[#f9f9ff] py-8 px-4">
@@ -424,7 +424,7 @@ const RegisterPage: React.FC = () => {
           {/* Footer */}
           <div className="text-center">
             <p className="text-xs text-on-surface-variant">
-              Already have an account?{' '}
+              Already have an account?{" "}
               <Link className="reg-link font-bold hover:underline" to="/login">
                 Log in
               </Link>
