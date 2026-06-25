@@ -25,7 +25,12 @@ import { Alert, AlertTitle, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ScrollArea, ScrollBar } from "../components/ui/scroll-area";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 import PatientNavbar from "../components/PatientNavbar";
 import Footer from "@/components/Footer";
 import MealCard from "../components/MealCard";
@@ -46,27 +51,32 @@ const REMINDER_CONFIG: Record<
 > = {
   medication: {
     icon: Pill,
-    bgClass: "bg-rose-50 dark:bg-rose-950/30 border-rose-200/50 dark:border-rose-900/30",
+    bgClass:
+      "bg-rose-50 dark:bg-rose-950/30 border-rose-200/50 dark:border-rose-900/30",
     iconClass: "text-rose-600 dark:text-rose-400",
   },
   hydration: {
     icon: Droplet,
-    bgClass: "bg-blue-50 dark:bg-blue-950/30 border-blue-200/50 dark:border-blue-900/30",
+    bgClass:
+      "bg-blue-50 dark:bg-blue-950/30 border-blue-200/50 dark:border-blue-900/30",
     iconClass: "text-blue-600 dark:text-blue-400",
   },
   meal: {
     icon: Utensils,
-    bgClass: "bg-amber-50 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-900/30",
+    bgClass:
+      "bg-amber-50 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-900/30",
     iconClass: "text-amber-600 dark:text-amber-400",
   },
   activity: {
     icon: Activity,
-    bgClass: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200/50 dark:border-emerald-900/30",
+    bgClass:
+      "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200/50 dark:border-emerald-900/30",
     iconClass: "text-emerald-600 dark:text-emerald-400",
   },
   custom: {
     icon: ClipboardList,
-    bgClass: "bg-zinc-50 dark:bg-zinc-900/30 border-zinc-200/50 dark:border-zinc-800/30",
+    bgClass:
+      "bg-zinc-50 dark:bg-zinc-900/30 border-zinc-200/50 dark:border-zinc-800/30",
     iconClass: "text-zinc-600 dark:text-zinc-400",
   },
 };
@@ -216,7 +226,23 @@ const PatientDashboard = () => {
         apiFetch("/api/patients/targets"),
         apiFetch("/api/patients/logs?limit=50"),
       ]);
-      if (fetchedTargets) setTargets(fetchedTargets);
+      if (fetchedTargets) {
+        // ponytail: never let null targets wipe out the UI defaults
+        const d = {
+          sodium_mg: 2000,
+          carbs_g: 250,
+          calories_kcal: 2000,
+          potassium_mg: 3500,
+          protein_g: 120,
+          fat_g: 70,
+        };
+        const merged = { ...d };
+        for (const key of Object.keys(d) as (keyof typeof d)[]) {
+          const v = fetchedTargets[key];
+          if (v != null) merged[key] = v;
+        }
+        setTargets(merged);
+      }
       if (fetchedLogs) setLogs(fetchedLogs);
     } catch (e) {
       console.error("Error fetching dashboard data:", e);
@@ -570,13 +596,18 @@ const PatientDashboard = () => {
                   </span>
                   {isCalorieSurpassed ? (
                     <span className="text-error font-semibold">
-                      {" "}—{" "}
-                      {Math.round(consumedCalories - targets.calories_kcal).toLocaleString()} kcal over goal.
+                      {" "}
+                      —{" "}
+                      {Math.round(
+                        consumedCalories - targets.calories_kcal,
+                      ).toLocaleString()}{" "}
+                      kcal over goal.
                     </span>
                   ) : (
                     <span className="text-secondary font-semibold">
-                      {" "}—{" "}
-                      {Math.round(caloriesLeft).toLocaleString()} kcal under goal. Great job!
+                      {" "}
+                      — {Math.round(caloriesLeft).toLocaleString()} kcal under
+                      goal. Great job!
                     </span>
                   )}
                 </p>
@@ -674,10 +705,11 @@ const PatientDashboard = () => {
 
                   {/* Warning Alert Box */}
                   <div
-                    className={`p-7 rounded-xl flex gap-3 items-start border mb-7 ${isSodiumWarning
+                    className={`p-7 rounded-xl flex gap-3 items-start border mb-7 ${
+                      isSodiumWarning
                         ? "bg-error-container text-on-error-container border-error/10"
                         : "bg-surface-container text-on-surface border-outline-variant/20"
-                      }`}
+                    }`}
                   >
                     <Info className="h-5 w-5 shrink-0 mt-0.5" />
                     <div className="flex flex-col">
@@ -895,7 +927,9 @@ const PatientDashboard = () => {
                                 <div
                                   className={`p-2 rounded-lg border ${config.bgClass} flex items-center justify-center shrink-0`}
                                 >
-                                  <Icon className={`h-4 w-4 ${config.iconClass}`} />
+                                  <Icon
+                                    className={`h-4 w-4 ${config.iconClass}`}
+                                  />
                                 </div>
                                 <div className="flex-grow min-w-0">
                                   <p className="text-sm font-semibold text-on-surface truncate">
@@ -908,7 +942,8 @@ const PatientDashboard = () => {
                                   )}
                                   {reminder.schedule && (
                                     <p className="text-[10px] text-outline mt-1.5 flex items-center gap-1">
-                                      <Clock className="h-3 w-3" /> {reminder.schedule}
+                                      <Clock className="h-3 w-3" />{" "}
+                                      {reminder.schedule}
                                     </p>
                                   )}
                                 </div>

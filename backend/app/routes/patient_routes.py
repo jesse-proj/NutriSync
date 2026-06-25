@@ -1,4 +1,4 @@
-from datetime import datetime, time, timezone, timedelta
+from datetime import datetime, time, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -39,7 +39,29 @@ def get_patient_targets(
     targets = session.exec(statement).first()
     if not targets:
         # Return default targets if none set by clinician
-        return DietaryTargets(patient_id=current_user.id, clinician_id=0)
+        return DietaryTargets(
+            patient_id=current_user.id,
+            clinician_id=0,
+            sodium_mg=2000,
+            carbs_g=250,
+            calories_kcal=2000,
+            potassium_mg=3500,
+            protein_g=120,
+            fat_g=70,
+        )
+    # Fill any null fields with safe defaults
+    if targets.sodium_mg is None:
+        targets.sodium_mg = 2000
+    if targets.carbs_g is None:
+        targets.carbs_g = 250
+    if targets.calories_kcal is None:
+        targets.calories_kcal = 2000
+    if targets.potassium_mg is None:
+        targets.potassium_mg = 3500
+    if targets.protein_g is None:
+        targets.protein_g = 120
+    if targets.fat_g is None:
+        targets.fat_g = 70
     return targets
 
 
