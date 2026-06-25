@@ -20,16 +20,18 @@ In the Philippines, diet-related chronic illnesses (such as cardiovascular disea
 ```mermaid
 graph TD
     subgraph Patient Layer
-        A[Mobile App: Photo Logger] -->|Sends Meal Photo| B(AI Food & Nutrition Engine)
-        C[Tagalog RAG Chatbot "NutriGabay"] <-->|Queries Logs & History| D[(Secure Patient Database)]
+        A[Mobile-First Web App] -->|Uploads Meal Photo| B(Groq Vision AI)
+        B -->|Dish Name + Description| C(Edamam Nutrition API)
+        C -->|Macro/Micronutrients| D[(SQLite / PostgreSQL)]
+        E[NutriGabay Chatbot] <-->|Queries Logs & Targets| D
+        F[Direct Message Channel] <-->|WebSocket| D
     end
 
     subgraph Clinician Layer
-        E[Clinician Dashboard] -->|Sets Dietary Thresholds| D
-        D -->|Surfaces Compliance Exceptions| E
+        G[Clinician Dashboard] -->|Sets Dietary Targets| D
+        D -->|Surfaces Clinical Alerts| G
+        G -->|Direct Message| F
     end
-
-    B -->|Saves Nutrition Data| D
 ```
 
 ---
@@ -39,131 +41,230 @@ graph TD
 ### 2.1 The Patient: Juan dela Cruz
 * **Demographics:** 58 years old, lives in a suburban barangay in Cavite. Recently discharged after a mild stroke due to hypertension.
 * **Technology Profile:** Uses a budget Android smartphone; relies heavily on Facebook Messenger; prefers Tagalog or Taglish.
-* **Pain Points:** 
+* **Pain Points:**
   * Struggles to understand what he can and cannot eat.
   * Finds calorie-counting and gram-tracking apps extremely frustrating and tedious.
-  * Cannot afford expensive clinical grade dietitians.
+  * Cannot afford expensive clinical-grade dietitians.
 
 ### 2.2 The Clinician: Dr. Maria Santos
 * **Demographics:** Cardiologist at a provincial public hospital. Manages 80+ outpatient cases.
 * **Technology Profile:** Uses desktop computers at the clinic and an iPad on rounds.
 * **Pain Points:**
   * Has no idea if patients are complying with low-sodium/low-fat instructions until they return in critical condition.
-  * Suffers from **alert fatigue**—does not want a system that pings her for minor dietary infractions.
   * Needs a quick, clean summary of nutritional compliance.
+  * Wants to send targeted reminders and communicate with patients directly between visits.
 
 ---
 
-## 3. Product Features & MoSCoW Prioritization
+## 3. Implemented Features
 
-### 3.1 Patient Experience (Mobile-First Web App)
+### 3.1 Authentication & Onboarding (`/auth`)
 
-#### Must Have
-* **Photo-Based Meal Logging:** Users log meals by taking or uploading a photo. No manual entry of ingredient weights is required.
-* **Filipino Food AI Recognition Engine:** Detects local dishes (*adobo*, *sinigang*, *tapsilog*, *tuyo*, *pancit cantón*, *pandesal*) and estimates portion sizes and nutritional values (calories, sodium, carbs, protein, potassium, fat).
-* **Tagalog RAG Chatbot ("NutriGabay"):** A conversational interface that answers questions in Tagalog/Taglish using the patient's:
-  1. Logged meal history.
-  2. Clinician-defined limits (e.g., sodium cap).
-  3. Medical history (e.g., hypertension, CKD).
-* **Conversational Guardrails & Escalation Warnings:** Standard warnings when queries require clinical decisions (e.g., "I feel chest pain, what should I eat?" will prompt an immediate instruction to seek emergency care).
-* **Daily Goal Progress:** Clean visual gauges showing remaining daily allowance for key clinical targets (e.g., Sodium, Carbs, Calories).
-
-#### Should Have
-* **Speech-to-Text Logging:** Allows patients to speak their meal descriptions (e.g., "Kumain ako ng dalawang pirasong pandesal at kape na may asukal") as an alternative to photos.
-* **Carinderia & Street Food Estimation:** Fine-tuned estimations for standard street food (*kwek-kwek*, *isaw*) and typical *carinderia* side portions.
-* **Offline Caching (`localStorage`):** Leverages browser `localStorage` to cache daily nutritional targets, the last 7 days of historical logs, and to queue pending meal text descriptions/metadata logged while offline. Once connection is restored, the queue is synced back to the server automatically.
-* **Manual Log Entry Fallback:** A manual entry form (for dish name, estimated serving) that appears when the Vision AI cannot confidently identify the meal, allowing the patient to still record their food intake.
-
-#### Could Have
-* **Gamified Compliance badges:** Earning badges for logging 7 days in a row or staying under the sodium limit.
+* **User Registration** — Two-role registration flow (`patient` / `clinician`) with distinct form fields per role.
+  * Patient: full name, email, password, explicit DPA 2012 consent checkbox (required).
+  * Clinician: full name, email, password, profession, PRC license number, date of birth, optional PRC ID image upload (stored server-side).
+* **JWT Login** — JSON-based login endpoint returns a signed JWT with role, user ID, and full name. A form-based `/auth/token` endpoint also exists for Swagger UI access.
+* **Protected Routes** — React `ProtectedRoute` guards all patient and clinician screens; unauthenticated users are redirected to `/login`.
+* **`GET /auth/me`** — Returns the currently authenticated user's profile.
 
 ---
 
-### 3.2 Clinician Dashboard (Web Platform)
+### 3.2 Patient Experience (`/patient/*`)
 
-#### Must Have
-* **Patient Compliance Dashboard:** A high-level overview displaying a list of active patients, their specific diagnoses (Hypertension, Diabetes, CKD), and compliance levels.
-* **Threshold Adjustment Control:** Simple controls to remotely set and update daily nutritional targets (e.g., reducing sodium limit from 2,000mg to 1,500mg, or carbs from 200g to 180g).
-* **Exception-Based Alerting:** Flags patients who have:
-  * Exceeded their clinical targets (e.g., sodium ceiling) three times in a single week.
-  * Stopped logging for more than 48 hours.
-  * Shown a deteriorating nutritional compliance trend.
-* **Historical Compliance Graphs:** Visual trends of sodium, carb, and calorie consumption over 7, 30, and 90 days.
+#### Patient Dashboard (`/patient/dashboard`)
+* **Daily Macro Gauges** — Circular SVG calorie ring and linear progress bars for sodium, carbs, protein, and fat — all computed against clinician-set targets fetched from `GET /api/patients/targets`.
+* **Photo-Based Meal Logging** — Patient uploads a photo; the backend pipeline runs:
+  1. **Groq Vision (llama-4-scout)** identifies the dish and generates a natural-language ingredient description.
+  2. **Edamam Nutrition API** parses the description into macro/micronutrients (calories, carbs, protein, fat, sodium, potassium).
+  3. A confirmation modal shows the AI result before the patient saves it via `POST /api/food/log`.
+* **Scan Warning Modal** — A one-time disclaimer appears before the first photo scan, reminding the patient that AI estimates are approximate.
+* **Meal Log Feed** — Paginated list of today's logged meals with expandable detail cards showing per-meal nutrient breakdown and the food photo (if available).
+* **Sodium Inline Alert** — If today's sodium exceeds 60 % of the daily limit, an inline contextual warning highlights the highest-sodium meal and suggests corrective action.
+* **Day-End Summary Banner** — After 23:00 local time a summary banner appears with the day's totals vs. targets.
+* **NutriGabay AI Chatbot** — Slide-in chat panel powered by `POST /api/chat/`. Sends the patient's message alongside their active dietary targets and last 10 food logs as context. The Groq `llama-3.3-70b-versatile` model replies in friendly Tagalog/Taglish. Emergency symptom detection (chest pain, extreme dizziness) triggers an immediate instruction to seek emergency care.
+* **Doctor Direct Message** — Patients with an assigned clinician can open a real-time WebSocket chat channel to their doctor (`useDoctorChat` hook → `wss://.../api/chat/direct/ws`). Unread badge count is fetched on load and updated live.
+* **Clinical Reminders Panel** — Active reminders created by the clinician (medication, hydration, meal, activity, custom) are shown in a collapsible panel on the dashboard.
+* **Patient Alerts** — `GET /api/patients/alerts` surfaces unresolved alerts. Clinician link invitations appear here; the patient can accept (which creates the `PatientClinicianLink` and initialises default `DietaryTargets`) or reject.
 
-#### Should Have
-* **EHR Integration hooks:** Standard APIs to push summaries to electronic health record systems common in the Philippines (e.g., CHITS, iClinicSys).
+#### Patient Goals (`/patient/goals`)
+* **Sodium Progress Card** — Live progress bar showing consumed vs. target sodium (sourced from the last 30 food logs).
+* **Walking Distance Estimate** — A rough activity proxy derived from total logged calories (1 km ≈ 50 kcal burned) displayed as a progress bar against a 5 km goal.
+* **Current Weight Card** — Manual weight entry via prompt; persists in local component state and renders a stylised bar chart.
+* **Weekly Checklist** — Three toggleable checklist items: BP Consistency, Fiber Goals, and Fluid Intake. State is local (client-side only).
+* **NutriGabay Goal Tip** — A static contextual tip card that changes copy based on whether the sodium target is met.
+
+#### Patient Reports (`/patient/reports`)
+* **Weekly Bar Chart** — Dual-bar chart (calories and sodium) for the last 7 days, computed from `GET /api/patients/logs?limit=30`.
+* **Nutritional Insights Cards** — Sodium Management card and Potassium Intake card with dynamic copy based on the logged data.
+* **Export to PDF** — Lazy-loads `jsPDF` + `jspdf-autotable`, fetches an AI-generated clinical summary from `GET /api/patients/reports/summary`, and generates a downloadable PDF with the summary, total stats, and a table of all logged meals.
+
+#### Patient Profile (`/patient/profile`)
+* Displays user's name, email, role, and ID from the `AuthContext`.
+* Medical Settings panel with toggles for Clinical Alerts and Medication Reminders (local state only).
+* Account Security panel (UI only — change PIN and Authorized Devices links are placeholder).
+* Support & Help panel with FAQs, Chat with Care Team, and Privacy Policy links (UI placeholders).
+* **Logout** button calls `logout()` from `AuthContext`, clears the JWT, and redirects to landing.
 
 ---
 
-## 4. Technical Architecture & Data Flow
+### 3.3 Clinician Dashboard (`/clinician/dashboard`)
+
+The single-page clinician workspace is organised into tabbed sections:
+
+#### Patient Management
+* **Add Patient by Email** — `POST /api/clinicians/patients` sends a `CLINICIAN_LINK` alert to the patient; the link is established only after the patient accepts via their alert panel.
+* **Patient List** — `GET /api/clinicians/patients` returns all accepted patients linked to the clinician. Each patient card is expandable.
+* **Unlink Patient** — `DELETE /api/clinicians/patients/{patient_id}` removes the link and associated dietary targets.
+
+#### Patient Detail Pane
+* **Food Log Viewer** — `GET /api/clinicians/patients/{id}/logs` loads all logs for the selected patient, displayed as sortable meal cards with photo thumbnails.
+* **Dietary Target Editor (`TargetEditor`)** — Inline form to `PUT /api/clinicians/patients/{id}/targets` for sodium, carbs, calories, potassium, protein, and fat limits.
+* **AI Nutrition Summary** — `GET /api/clinicians/patients/{id}/summary` returns a 2–3 sentence clinical summary (Groq `llama-3.1-8b-instant`) covering the patient's last 30 meals.
+* **Clinical Reminders (`ClinicalReminders`)** — Clinician can create, edit, toggle active/inactive, and delete reminders (medication, hydration, meal, activity, custom) for each patient via `POST / PUT / DELETE /api/clinicians/patients/{id}/reminders`.
+
+#### Urgent Tasks (`UrgentTasks` component)
+* Displays all unresolved `WARNING_SODIUM`, `CRITICAL_SODIUM`, and `WARNING_CALORIES` alerts from `GET /api/clinicians/alerts`.
+* Filter bar (All / Critical / Warning) and patient-name search.
+* Stats strip: total active alerts, critical count, warning count.
+* **Resolve Action** — `PATCH /api/clinicians/alerts/{id}/resolve` marks the alert as resolved and removes it from the list.
+* "Review Logs" shortcut navigates to the patient's detail pane.
+
+#### Clinician Direct Messages (`ClinicianChatHub` component)
+* Sidebar contact list of all linked patients with unread message badges.
+* Real-time WebSocket chat (`wss://.../api/chat/direct/ws`) with per-patient conversation history loaded from `GET /api/chat/direct/history/{partner_id}`.
+* Messages marked read on open via `PATCH /api/chat/direct/read/{partner_id}`.
+
+---
+
+## 4. Technical Architecture
 
 ### 4.1 System Components
-* **Frontend:** React + TypeScript (Vite) + Tailwind CSS + Shadcn UI. Fully responsive for mobile (Patients) and desktop (Clinicians).
-* **Backend:** Python + FastAPI. Fast, modern API framework with automatic OpenAPI documentation.
-* **Database:** PostgreSQL (for relational data: users, patient profiles, clinical targets, clinical alerts) + Vector Store (for RAG document chunks like clinical guidelines).
-* **AI Core:**
-  1. **Vision-to-Nutrition API:** Leverages multimodal LLM capabilities (e.g., Gemini Flash / Vision APIs) to analyze food photos, identify dishes, and extract estimated macronutrient/micronutrient values.
-  2. **Tagalog RAG Engine:** Orchestrates patient history, recent logs, clinical limits, and basic nutritional guidelines to generate context-aware, localized answers.
 
-### 4.2 Data Privacy & Compliance (DPA 2012)
-Because the platform processes sensitive personal health information (PHI), it must strictly comply with the **Philippine Data Privacy Act of 2012 (RA 10173)**:
-* **Consent management:** Explicit opt-in from patients during onboarding.
-* **Encryption:** AES-256 encryption for data-at-rest and HTTPS/TLS for data-in-transit.
-* **Role-Based Access Control (RBAC):** Clinicians can only see patients registered under their care or clinical department. Patients can only access their own profiles and histories.
-* **Audit Logging:** System logs all views and updates of medical history/dietary thresholds.
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | React 18 + TypeScript, Vite, Tailwind CSS, Shadcn UI (Radix primitives) |
+| **Backend** | Python 3.12, FastAPI, SQLModel (SQLAlchemy ORM), Pydantic v2 |
+| **Database** | SQLite (dev) — schema-compatible with PostgreSQL for production |
+| **Auth** | JWT (PyJWT) — HS256, `python-jose`, bcrypt password hashing |
+| **Vision AI** | Groq API — `meta-llama/llama-4-scout-17b-16e-instruct` (image → food description) |
+| **Nutrition Data** | Edamam Nutrition Analysis API (NLP ingredient parsing → macro/micronutrients) |
+| **NutriGabay Chatbot** | Groq API — `llama-3.3-70b-versatile` (Tagalog/Taglish dietary Q&A) |
+| **AI Summary** | Groq API — `llama-3.1-8b-instant` (clinical nutrition summary for clinicians) |
+| **Real-Time Chat** | FastAPI `WebSocket`, in-memory `ChatConnectionManager`, `ChatMessage` DB table |
+| **File Storage** | Local filesystem (`uploads/` directory), served as static files |
+
+### 4.2 Database Schema
+
+| Table | Purpose |
+| :--- | :--- |
+| `users` | Patients and clinicians; stores credentials, role, consent flag, PRC fields |
+| `patient_clinician_links` | M:M join table for accepted patient–clinician relationships |
+| `dietary_targets` | Per-patient daily limits (sodium, carbs, calories, potassium, protein, fat) |
+| `food_logs` | Individual meal entries with AI-estimated nutrients and optional image URL |
+| `clinical_alerts` | System-generated dietary exceedance alerts + clinician link invitations |
+| `clinical_reminders` | Clinician-authored reminders (type, title, description, schedule) |
+| `chat_messages` | Direct messages between patients and clinicians with read-status tracking |
+
+### 4.3 Key API Routes
+
+| Method | Path | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/auth/register` | Register patient or clinician |
+| `POST` | `/api/auth/login` | JSON login → JWT |
+| `GET` | `/api/auth/me` | Current user profile |
+| `GET` | `/api/patients/targets` | Patient's dietary targets |
+| `GET` | `/api/patients/logs` | Patient's food log history |
+| `GET` | `/api/patients/alerts` | Patient's unresolved alerts (incl. link invites) |
+| `PATCH` | `/api/patients/alerts/{id}/resolve` | Accept clinician link / dismiss alert |
+| `PATCH` | `/api/patients/alerts/{id}/reject` | Reject clinician link invite |
+| `GET` | `/api/patients/reminders` | Active reminders for patient |
+| `GET` | `/api/patients/clinician` | Patient's assigned clinician profile |
+| `GET` | `/api/patients/reports/summary` | AI-generated nutrition summary |
+| `POST` | `/api/food/analyze-photo` | Upload image → Vision AI → Edamam → nutrients |
+| `POST` | `/api/food/log` | Save confirmed meal entry + trigger alerts |
+| `POST` | `/api/chat/` | NutriGabay chatbot (Tagalog/Taglish) |
+| `WS` | `/api/chat/direct/ws` | Real-time direct message WebSocket |
+| `GET` | `/api/chat/direct/history/{id}` | Conversation history with a user |
+| `GET` | `/api/chat/direct/unread` | Unread message counts by sender |
+| `PATCH` | `/api/chat/direct/read/{id}` | Mark messages as read |
+| `GET` | `/api/clinicians/patients` | Clinician's linked patient list |
+| `POST` | `/api/clinicians/patients` | Send link invite to patient by email |
+| `DELETE` | `/api/clinicians/patients/{id}` | Unlink patient |
+| `GET/PUT` | `/api/clinicians/patients/{id}/targets` | View / update patient's dietary targets |
+| `GET` | `/api/clinicians/patients/{id}/logs` | Patient's food logs (clinician view) |
+| `GET` | `/api/clinicians/patients/{id}/summary` | AI nutrition summary (clinician view) |
+| `GET/POST` | `/api/clinicians/patients/{id}/reminders` | List / create reminders |
+| `PUT/DELETE` | `/api/clinicians/patients/{id}/reminders/{rid}` | Update / deactivate reminder |
+| `GET` | `/api/clinicians/alerts` | All unresolved dietary alerts across patients |
+| `PATCH` | `/api/clinicians/alerts/{id}/resolve` | Resolve an alert |
+
+### 4.4 Automatic Clinical Alert Logic
+Triggered on every `POST /api/food/log` call after cumulating today's sodium and calories (resolved against the client's local timezone via the `X-Timezone-Offset` header):
+
+| Alert Type | Trigger Condition |
+| :--- | :--- |
+| `WARNING_SODIUM` | Daily sodium > limit |
+| `CRITICAL_SODIUM` | Daily sodium > 1.5× limit |
+| `WARNING_CALORIES` | Daily calories > limit |
+
+Duplicate alerts of the same type within the same calendar day are suppressed.
+
+### 4.5 Data Privacy & Compliance (DPA 2012)
+* **Consent management:** Explicit `consent_given` opt-in required for patient registration; enforced at both frontend and API levels.
+* **Role-Based Access Control (RBAC):** Clinicians access only patients linked to them. Patients access only their own data. Enforced via `get_current_patient` / `get_current_clinician` dependency guards on every protected route.
+* **JWT expiry:** Tokens are short-lived; credentials are never stored in plaintext.
+* **HTTPS/TLS:** Required for production deployment (enforced by infrastructure, not application layer).
 
 ---
 
 ## 5. Key Workflows
 
 ### 5.1 Patient Logs a Meal (Happy Path)
-1. Patient takes a photo of *Sinigang na Baboy* with rice.
-2. The image is uploaded to the backend via secure API.
-3. The Vision AI Engine recognizes:
-   * 1 serving of Sinigang na Baboy (Estimated: 800mg Sodium, 25g Protein, 12g Fat).
-   * 1.5 cups of white rice (Estimated: 67g Carbs, 300 kcal).
-4. The system logs these values against the patient's daily limits.
-5. The UI updates the remaining sodium, carbohydrate, and calorie gauges.
+1. Patient taps the **Scan Meal** button on the Patient Dashboard.
+2. A one-time AI disclaimer modal is shown; patient acknowledges and selects a photo from their device.
+3. The image is sent to `POST /api/food/analyze-photo`.
+4. The Groq Vision model (llama-4-scout) identifies the dish and ingredients (e.g., *"1 bowl of pork sinigang, 1 cup of white rice"*).
+5. The Edamam API parses the description into nutrient values.
+6. A confirmation modal displays the identified dish name, description, and estimated nutrients.
+7. Patient confirms → `POST /api/food/log` saves the entry and triggers alert evaluation.
+8. The dashboard macro gauges update in real time.
 
-### 5.2 RAG Chatbot Consultation ("NutriGabay")
-1. Patient asks: *"Pwede pa ba ako kumain ng saging?"* (Can I still eat a banana?)
-2. The RAG engine fetches:
-   * Patient's clinical limits: Stage II CKD (Low Potassium constraint: Max 2000mg/day).
-   * Patient's consumed potassium today: 1600mg logged.
-   * Nutritional profile of 1 banana: ~400mg potassium.
-3. The chatbot synthesizes this: *"Mang Juan, may limitasyon po kayo sa potassium dahil sa inyong sakit sa bato. Naka-1600mg na po kayo ngayon at ang saging ay may dagdag na 400mg. Mas mabuti pong iwasan muna ito ngayon o kumain lamang ng kalahati."*
+### 5.2 NutriGabay Chatbot Consultation
+1. Patient taps the floating chatbot button on the Patient Dashboard.
+2. NutriGabay greets in Taglish: *"Magandang araw, Mang [Name]! Pwede mo akong tanungin..."*
+3. Patient asks a dietary question (e.g., *"Pwede pa ba ako kumain ng saging?"*).
+4. `POST /api/chat/` sends the message plus the patient's dietary targets and last 10 food logs as system context.
+5. The Groq LLM returns a context-aware, friendly Taglish response.
+6. If an emergency symptom is mentioned, the bot immediately instructs the patient to seek emergency care.
 
-### 5.3 Clinician Goal Setting
-1. Dr. Santos reviews Juan's recent blood test showing elevated HbA1c.
-2. From her dashboard, she navigates to Juan's profile.
-3. She edits the Carbohydrate Target from 250g to 180g.
-4. The backend saves the change and pushes a notification to the patient app.
-5. The patient's app immediately displays the updated carbohydrate gauge (180g limit) and updates the RAG engine context.
+### 5.3 Clinician Links a Patient and Sets Targets
+1. Clinician enters the patient's registered email in the **Add Patient** form.
+2. `POST /api/clinicians/patients` creates a `CLINICIAN_LINK` alert for the patient.
+3. Patient sees the invite in their alerts panel and taps **Accept**.
+4. `PATCH /api/patients/alerts/{id}/resolve` creates the `PatientClinicianLink` record and initialises default `DietaryTargets`.
+5. Patient now appears in the clinician's patient list.
+6. Clinician opens the patient's detail pane and uses the **Target Editor** to set custom sodium, carbs, calorie, and potassium limits.
+7. `PUT /api/clinicians/patients/{id}/targets` saves the changes; the patient's dashboard gauges reflect the new limits on next load.
 
----
-
-## 6. Implementation Roadmap & Next Steps
-
-```
-Phase 1: Foundation (Vite + FastAPI + DB Schema)
-   └── Establish API models, user authentication, and schema for clinical limits.
-
-Phase 2: AI Integrations (Vision + Tagalog RAG)
-   └── Build the photo nutrition parsing engine and conversational health assistant.
-
-Phase 3: Clinician Dashboard (Patient Monitoring & Configs)
-   └── Create the patient compliance monitoring list, threshold editor, and alerting system.
-
-Phase 4: Optimization, Security & EHR Hooks
-   └── Implement RBAC, DPA 2012 compliance auditing, and exportable reports.
-```
+### 5.4 Clinician Receives and Resolves a Dietary Alert
+1. A patient exceeds their daily sodium limit; the system auto-generates a `WARNING_SODIUM` or `CRITICAL_SODIUM` alert on their next food log.
+2. The **Urgent Tasks** tab on the Clinician Dashboard shows the alert with severity badge, metric category, and clinical detail message.
+3. Clinician reviews the patient's logs via **Review Logs** shortcut.
+4. Clinician taps **Resolve**; `PATCH /api/clinicians/alerts/{id}/resolve` archives the alert.
 
 ---
 
-## 7. Open Issues & Risks
+## 6. Current Limitations & Known Gaps
 
-| Risk | Impact | Mitigation Strategy |
-| :--- | :--- | :--- |
-| **Incorrect AI Nutritional Estimates** | High | Visual disclaimer on the patient app; RAG chatbot strictly refuses to diagnose; clinician dashboard indicates values are "AI Estimates". |
-| **Low/No Internet in Remote Areas** | Medium | Use browser `localStorage` to cache patient targets, logs, and queue offline entries, syncing them automatically when back in coverage. |
-| **Patient Logging Compliance Drop-off** | High | Clinician dashboard surfaces "Silence Alerts" so clinical staff can trigger a phone call follow-up. |
+| Area | Current State |
+| :--- | :--- |
+| **Weight Tracking** | Weight is entered via a prompt and stored in local React state only — not persisted to the backend. |
+| **Weekly Checklist** | BP Consistency, Fiber Goals, and Fluid Intake checklist items are local state only — not persisted. |
+| **Profile Editing** | Profile page shows account details, caregiver contact, and residential address as static placeholder text; no edit API is wired up. |
+| **Account Security** | Change PIN and Authorized Devices UI items are non-functional placeholders. |
+| **Offline Support** | No `localStorage` caching or offline queue has been implemented. |
+| **Gamification** | No compliance badges or streak tracking. |
+| **EHR Integration** | No hooks for CHITS, iClinicSys, or other Philippine EHR systems. |
+| **Speech-to-Text** | No voice logging feature. |
+| **Inactivity Alerts** | No automatic alert for patients who have not logged for 48+ hours. |
+| **PDF Charts** | The exported PDF contains a data table but no visual chart images. |
