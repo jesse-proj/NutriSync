@@ -22,6 +22,7 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { ScrollArea, ScrollBar } from '../components/ui/scroll-area'
 import { Card } from '../components/ui/card'
+import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert'
 import PatientNavbar from '../components/PatientNavbar'
 import Footer from '@/components/Footer'
 
@@ -506,22 +507,20 @@ const PatientDashboard = () => {
 
           {/* Notification Alert Tab */}
           {consumedSodium >= targets.sodium_mg * 0.9 && (
-            <div className="mb-8 p-5 rounded-2xl bg-red-50 border border-red-200 text-red-800 flex gap-4 items-start shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
-              <span className="p-2.5 bg-red-100 rounded-xl flex items-center justify-center text-red-700 shrink-0">
-                <AlertTriangle className="h-6 w-6 stroke-[2.5] animate-bounce" />
-              </span>
-              <div className="flex-1">
-                <h4 className="font-bold text-sm text-red-950 flex items-center gap-2">
-                  Pansin: Malapit o Lampas na sa Limitasyon ng Sodium!
-                </h4>
-                <p className="text-xs text-red-900 mt-1 leading-relaxed">
+            <Alert variant="destructive" className="mb-8 shadow-sm">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle className="flex items-center gap-2 text-red-950">
+                Pansin: Malapit o Lampas na sa Limitasyon ng Sodium!
+              </AlertTitle>
+              <AlertDescription className="mt-2 text-red-900 leading-relaxed">
+                <p>
                   Ang iyong nakonsumong sodium ngayong araw ay umabot na sa <span className="font-bold">{Math.round(consumedSodium)} mg</span>, na nasa <span className="font-bold">{Math.round((consumedSodium / targets.sodium_mg) * 100)}%</span> ng iyong daily target limit (<span className="font-bold">{targets.sodium_mg} mg</span>).
                 </p>
-                <div className="mt-3 p-3 bg-white/75 border border-red-200/50 rounded-xl text-xs font-bold text-red-950">
-                  ⚠️ Paalala mula sa iyong Doctor: Mangyaring iwasan muna ang pagkain ng maaalat (tulad ng toyo, patis, bagoong, de-lata, at instant noodles) sa natitirang bahagi ng araw na ito!
+                <div className="mt-3 p-3 bg-white/70 border border-red-200/40 rounded-xl text-xs font-bold text-red-950">
+                  Paalala mula sa iyong Doctor: Mangyaring iwasan muna ang pagkain ng maaalat (tulad ng toyo, patis, bagoong, de-lata, at instant noodles) sa natitirang bahagi ng araw na ito!
                 </div>
-              </div>
-            </div>
+              </AlertDescription>
+            </Alert>
           )}
 
           {/* Dashboard Grid */}
