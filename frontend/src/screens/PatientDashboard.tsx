@@ -699,38 +699,6 @@ const PatientDashboard = () => {
               </div>
             </div>
 
-            {/* NutriGabay Suggestion Card */}
-            <div className="relative overflow-hidden bg-primary p-6 rounded-2xl shadow-sm text-on-primary">
-              <div className="absolute -right-4 -bottom-4 opacity-15">
-                <Lightbulb className="w-28 h-28 transform rotate-12" />
-              </div>
-              <div className="relative z-10">
-                <div className="bg-white/10 w-fit px-3 py-1 rounded-full mb-4 border border-white/10">
-                  <span className="text-[10px] font-bold uppercase tracking-widest">
-                    NutriGabay Suggestion
-                  </span>
-                </div>
-                <p className="text-lg font-bold leading-snug mb-2">
-                  Swap Bagoong for Calamansi & Garlic
-                </p>
-                <p className="text-xs text-on-primary/80 mb-5 leading-relaxed">
-                  You can keep the savory flavor of your Pinakbet without the extra sodium spike. Your kidneys will thank you!
-                </p>
-                <button
-                  onClick={() => {
-                    setIsChatOpen(true)
-                    setChatMessages(prev => [
-                      ...prev,
-                      { text: "Ano ang magandang recipe para sa Pinakbet na walang bagoong?", isUser: true },
-                      { text: "Magandang tanong! Upang mapanatili ang sarap ng Pinakbet nang hindi gumagamit ng maalat na bagoong, maaari mong gamitin ang pinaghalong calamansi, bawang, at kaunting patis na may mababang sodium. Pwede rin nating dagdagan ng gata upang maging malasa ang sabaw. Gusto mo bang bigyan kita ng kumpletong recipe?", isUser: false }
-                    ])
-                  }}
-                  className="bg-on-primary text-primary px-5 py-2 rounded-xl font-semibold text-xs border-none hover:bg-gray-800 transition-colors cursor-pointer"
-                >
-                  Explore Recipes
-                </button>
-              </div>
-            </div>
 
           </div>
 

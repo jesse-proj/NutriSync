@@ -180,6 +180,9 @@ const ClinicianDashboard = () => {
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Settings className="h-5 w-5 text-on-surface-variant" />
                 </Button>
+                <Button variant="ghost" size="icon" onClick={logout} title="Logout" className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive">
+                  <LogOut className="h-5 w-5" />
+                </Button>
               </div>
               <div className="h-8 w-px bg-outline-variant" />
               <div className="flex items-center gap-3 cursor-pointer">
