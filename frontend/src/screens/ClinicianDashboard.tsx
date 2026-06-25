@@ -22,16 +22,21 @@ import {
 } from "../components/ui/sidebar";
 import logoBrand from "../assets/nutrisync.png";
 import {
-  LayoutDashboard,
-  Users,
-  UserPlus,
-  HelpCircle,
-  LogOut,
+  Activity,
+  Heart,
+  Droplet,
+  ChevronDown,
+  ChevronRight,
+  TrendingUp,
+  Brain,
+  ShieldAlert,
+  Calendar,
+  Clock,
+  FileText,
   Search,
   Bell,
   Settings,
   BadgeCheck,
-  AlertCircle,
   Plus,
   X,
   RefreshCw,
@@ -41,9 +46,14 @@ import {
   CheckCircle,
   XCircle,
   Trash2,
-  MessageSquare,
-  Send,
   Utensils,
+  LayoutDashboard,
+  Users,
+  UserPlus,
+  HelpCircle,
+  LogOut,
+  AlertCircle,
+  MessageSquare,
 } from "lucide-react";
 import { ClinicianChatHub } from "./ClinicianChatHub";
 import PatientList from "../components/PatientList";
@@ -96,7 +106,7 @@ const ClinicianDashboard = () => {
     "dashboard" | "patients" | "urgent-tasks" | "messages"
   >("dashboard");
 
-  // Data
+  // State
   const [patients, setPatients] = useState<User[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,6 +114,7 @@ const ClinicianDashboard = () => {
 
   // Chat
   const [unreadCounts, setUnreadCounts] = useState<Record<number, number>>({});
+
   const [activeChatPatientId, setActiveChatPatientId] = useState<number | null>(
     null,
   );
@@ -118,7 +129,6 @@ const ClinicianDashboard = () => {
   const [aiSummary, setAiSummary] = useState<string>("");
   const [loadingSummary, setLoadingSummary] = useState(false);
 
-  // Notifications
   const [notify, setNotify] = useState<{
     type: "success" | "error";
     message: string;
@@ -404,16 +414,7 @@ const ClinicianDashboard = () => {
           <SidebarFooter className="pb-4">
             <SidebarSeparator className="mx-0 mb-2" />
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveView("patients")}
-                  tooltip="New Patient"
-                  className="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 hover:text-sidebar-primary-foreground font-bold"
-                >
-                  <UserPlus />
-                  <span>New Patient</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Help Center">
                   <a href="#">
