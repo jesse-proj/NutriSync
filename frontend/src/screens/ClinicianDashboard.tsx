@@ -21,6 +21,7 @@ import {
   SidebarSeparator,
 } from "../components/ui/sidebar";
 import logoBrand from "../assets/nutrisync.png";
+
 import {
   Search,
   Bell,
@@ -87,6 +88,10 @@ const ClinicianDashboard = () => {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  useEffect(() => {
+    document.title = "Clinician Dashboard | NutriSync";
+  }, []);
 
   // Navigation
   const [activeView, setActiveView] = useState<

@@ -1,15 +1,20 @@
 import { useState, useEffect } from "react";
-import { Edit, CheckCircle, Sparkles } from "lucide-react";
+import { CheckCircle, Sparkles } from "lucide-react";
 import { ScrollArea, ScrollBar } from "../components/ui/scroll-area";
 import Footer from "../components/Footer";
 import PatientNavbar from "../components/PatientNavbar";
-import { Button } from "@/components/ui/button";
+
 import { apiFetch } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 
 // ponytail: Goals.tsx uses simple React state and inline Tailwind styles for custom progress/charts
 
 const Goals = () => {
-  const [weight, setWeight] = useState<number | null>(null);
+  useEffect(() => {
+    document.title = "Goals | NutriSync";
+  }, []);
+
+  const [weight] = useState<number | null>(null);
   const [sodiumConsumed, setSodiumConsumed] = useState(0);
   const [sodiumTarget] = useState(1500);
   const [walkingTarget] = useState(5.0);

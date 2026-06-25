@@ -23,6 +23,10 @@ interface FoodLog {
 }
 
 const Reports = () => {
+  useEffect(() => {
+    document.title = "Reports | NutriSync";
+  }, []);
+
   const {} = useAuth();
   const [logs, setLogs] = useState<FoodLog[]>([]);
   const [loading, setLoading] = useState(true);

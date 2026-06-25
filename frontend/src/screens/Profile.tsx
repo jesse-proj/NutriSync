@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
   ChevronRight,
@@ -20,6 +20,10 @@ import { Button } from "@/components/ui/button";
 // ponytail: Profile.tsx uses state for setting toggles and hooks directly into the auth context logout
 
 const Profile = () => {
+  useEffect(() => {
+    document.title = "Profile | NutriSync";
+  }, []);
+
   const { user, logout } = useAuth();
 
   // Medical Settings Toggles
