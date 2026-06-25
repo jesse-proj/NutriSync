@@ -116,35 +116,65 @@ async def log_food(
     session.commit()
     session.refresh(new_log)
 
-    # Auto-generate clinical alerts for exceeded dietary targets
+    # Auto-generate clinical alerts for exceeded dietary targets based on daily totals
     stmt = select(DietaryTargets).where(DietaryTargets.patient_id == current_user.id)
     targets = session.exec(stmt).first()
     if targets:
+        # Fetch all food logs for this patient on the same day as this log
+        new_log_date = new_log.logged_at.date()
+        stmt_logs = select(FoodLogs).where(FoodLogs.patient_id == current_user.id)
+        all_logs = session.exec(stmt_logs).all()
+        todays_logs = [log for log in all_logs if log.logged_at.date() == new_log_date]
+        
+        # Calculate daily cumulative totals
+        total_sodium = sum(log.sodium_mg for log in todays_logs)
+        total_calories = sum(log.calories_kcal for log in todays_logs)
+        total_carbs = sum(log.carbs_g for log in todays_logs)
+        
+        # Fetch existing alerts generated today to prevent duplicates
+        stmt_alerts = select(ClinicalAlerts).where(ClinicalAlerts.patient_id == current_user.id)
+        all_alerts = session.exec(stmt_alerts).all()
+        todays_alert_types = {
+            a.alert_type for a in all_alerts if a.created_at.date() == new_log_date
+        }
+        
         new_alerts = []
-        if targets.sodium_mg and new_log.sodium_mg > targets.sodium_mg * 1.5:
-            new_alerts.append(ClinicalAlerts(
-                patient_id=current_user.id,
-                alert_type="CRITICAL_SODIUM",
-                message=f"Sodium critically exceeded: {new_log.sodium_mg:.0f}mg in '{new_log.name}' (limit: {targets.sodium_mg:.0f}mg, {int(new_log.sodium_mg / targets.sodium_mg * 100)}% of target)"
-            ))
-        elif targets.sodium_mg and new_log.sodium_mg > targets.sodium_mg:
-            new_alerts.append(ClinicalAlerts(
-                patient_id=current_user.id,
-                alert_type="WARNING_SODIUM",
-                message=f"Sodium exceeded: {new_log.sodium_mg:.0f}mg in '{new_log.name}' (limit: {targets.sodium_mg:.0f}mg, {int(new_log.sodium_mg / targets.sodium_mg * 100)}% of target)"
-            ))
-        if targets.calories_kcal and new_log.calories_kcal > targets.calories_kcal:
-            new_alerts.append(ClinicalAlerts(
-                patient_id=current_user.id,
-                alert_type="WARNING_CALORIES",
-                message=f"Calories exceeded: {new_log.calories_kcal:.0f}kcal in '{new_log.name}' (limit: {targets.calories_kcal:.0f}kcal, {int(new_log.calories_kcal / targets.calories_kcal * 100)}% of target)"
-            ))
-        if targets.carbs_g and new_log.carbs_g > targets.carbs_g:
-            new_alerts.append(ClinicalAlerts(
-                patient_id=current_user.id,
-                alert_type="WARNING_CARBS",
-                message=f"Carbs exceeded: {new_log.carbs_g:.0f}g in '{new_log.name}' (limit: {targets.carbs_g:.0f}g, {int(new_log.carbs_g / targets.carbs_g * 100)}% of target)"
-            ))
+        
+        # Check Sodium (Critical threshold > 150%, Warning threshold > 100%)
+        if targets.sodium_mg:
+            if total_sodium > targets.sodium_mg * 1.5:
+                if "CRITICAL_SODIUM" not in todays_alert_types:
+                    new_alerts.append(ClinicalAlerts(
+                        patient_id=current_user.id,
+                        alert_type="CRITICAL_SODIUM",
+                        message=f"Daily sodium limit critically exceeded: {total_sodium:.0f}mg consumed today (limit: {targets.sodium_mg:.0f}mg, {int(total_sodium / targets.sodium_mg * 100)}% of target)"
+                    ))
+            elif total_sodium > targets.sodium_mg:
+                if "WARNING_SODIUM" not in todays_alert_types:
+                    new_alerts.append(ClinicalAlerts(
+                        patient_id=current_user.id,
+                        alert_type="WARNING_SODIUM",
+                        message=f"Daily sodium limit exceeded: {total_sodium:.0f}mg consumed today (limit: {targets.sodium_mg:.0f}mg, {int(total_sodium / targets.sodium_mg * 100)}% of target)"
+                    ))
+                    
+        # Check Calories (> 100%)
+        if targets.calories_kcal and total_calories > targets.calories_kcal:
+            if "WARNING_CALORIES" not in todays_alert_types:
+                new_alerts.append(ClinicalAlerts(
+                    patient_id=current_user.id,
+                    alert_type="WARNING_CALORIES",
+                    message=f"Daily calorie limit exceeded: {total_calories:.0f}kcal consumed today (limit: {targets.calories_kcal:.0f}kcal, {int(total_calories / targets.calories_kcal * 100)}% of target)"
+                ))
+                
+        # Check Carbs (> 100%)
+        if targets.carbs_g and total_carbs > targets.carbs_g:
+            if "WARNING_CARBS" not in todays_alert_types:
+                new_alerts.append(ClinicalAlerts(
+                    patient_id=current_user.id,
+                    alert_type="WARNING_CARBS",
+                    message=f"Daily carbohydrate limit exceeded: {total_carbs:.0f}g consumed today (limit: {targets.carbs_g:.0f}g, {int(total_carbs / targets.carbs_g * 100)}% of target)"
+                ))
+                
         for alert in new_alerts:
             session.add(alert)
         if new_alerts:
