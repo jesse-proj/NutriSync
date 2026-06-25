@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { CheckCircle, Sparkles } from "lucide-react";
+import { CheckCircle, HeartPulse, Sparkles } from "lucide-react";
 import { ScrollArea, ScrollBar } from "../components/ui/scroll-area";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Checkbox } from "../components/ui/checkbox";
 import Footer from "../components/Footer";
 import PatientNavbar from "../components/PatientNavbar";
 
 import { apiFetch } from "../api/client";
-import { useAuth } from "../context/AuthContext";
 
 // ponytail: Goals.tsx uses simple React state and inline Tailwind styles for custom progress/charts
 
@@ -69,10 +70,9 @@ const Goals = () => {
       window.removeEventListener("nutrisync:meal-logged", onMealLogged);
   }, [fetchData]);
 
-  const sodiumPct = Math.min(
-    150,
-    Math.round((sodiumConsumed / sodiumTarget) * 100),
-  );
+  const sodiumPct = sodiumTarget
+    ? Math.min(150, Math.round((sodiumConsumed / sodiumTarget) * 100))
+    : 0;
   // ponytail: interpolate from teal (#00B4AD) at 0% → amber (#F59E0B) at 60% → red (#EF4444) at 100%
   const sodiumColor =
     sodiumPct <= 60 ? "#00B4AD" : sodiumPct <= 80 ? "#F59E0B" : "#EF4444";
@@ -90,7 +90,7 @@ const Goals = () => {
       <PatientNavbar activePage="goals" />
 
       {/* Main Content */}
-      <ScrollArea className="flex-grow w-full">
+      <ScrollArea className="grow w-full">
         <main className="max-w-7xl mx-auto w-full px-6 py-8">
           {/* Header Section */}
           <div className="flex justify-between items-end mb-8">
@@ -127,7 +127,7 @@ const Goals = () => {
                 </div>
 
                 {/* Simulated Chart Bars */}
-                <div className="flex-grow min-h-[200px] relative flex items-end justify-between gap-2 px-1 pt-6">
+                <div className="grow min-h-50 relative flex items-end justify-between gap-2 px-1 pt-6">
                   <div className="w-full absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
                     <div className="border-t border-outline"></div>
                     <div className="border-t border-outline"></div>
@@ -238,109 +238,101 @@ const Goals = () => {
             {/* Right Column: NutriGabay & Checklist */}
             <div className="lg:col-span-4 flex flex-col gap-6 text-left">
               {/* NutriGabay Card */}
-              <div className="bg-primary text-on-primary rounded-2xl p-6 shadow-md relative overflow-hidden">
-                <div className="flex gap-4 items-start relative z-10">
-                  <div className="shrink-0 w-16 h-16 rounded-full overflow-hidden border-2 border-white/20 bg-white flex items-center justify-center text-primary font-bold text-lg">
-                    🤖
+              <Card className="bg-primary text-on-primary overflow-hidden relative">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-full border-2 border-white/20 bg-white flex items-center justify-center text-primary font-bold text-lg">
+                      <HeartPulse className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg text-on-primary">NutriGabay</CardTitle>
+                      <CardDescription className="text-xs text-white opacity-90 leading-relaxed">
+                        {sodiumTarget === null
+                          ? "Loading your sodium target..."
+                          : sodiumPct <= 100
+                            ? "You're doing great! Your sodium intake is within range. Keep up the fiber goals to maintain heart health."
+                            : "Your sodium is above target. Consider reducing high-sodium meals and drink more water."}
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <h4 className="text-lg font-bold">NutriGabay</h4>
-                    <p className="text-xs opacity-90 leading-relaxed">
-                      {sodiumTarget === null
-                        ? "Loading your sodium target..."
-                        : sodiumPct <= 100
-                          ? "You're doing great! Your sodium intake is within range. Keep up the fiber goals to maintain heart health."
-                          : "Your sodium is above target. Consider reducing high-sodium meals and drink more water."}
-                    </p>
+                </CardHeader>
+                <CardContent className="relative pt-0">
+                  <div className="absolute -right-4 -bottom-4 opacity-10">
+                    <Sparkles className="w-28 h-28 rotate-12" />
                   </div>
-                </div>
-                <div className="absolute -right-4 -bottom-4 opacity-10">
-                  <Sparkles className="w-28 h-28 transform rotate-12" />
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Weekly Checklist */}
-              <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/30">
-                <h3 className="text-lg font-bold text-on-surface mb-6">
-                  Weekly Checklist
-                </h3>
-                <div className="flex flex-col gap-4">
-                  {/* BP checklist item */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Weekly Checklist</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-0">
                   <div
                     onClick={() => setBpChecked(!bpChecked)}
-                    className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer"
+                    className="group flex items-center gap-4 rounded-xl border border-outline-variant/70 bg-background p-4 transition-all hover:bg-surface-container-low cursor-pointer"
                   >
-                    <div
-                      className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${bpChecked ? "bg-primary border-primary text-white" : "border-outline-variant"}`}
-                    >
-                      {bpChecked && <CheckCircle className="h-4.5 w-4.5" />}
-                    </div>
-                    <div className="flex-grow">
-                      <p className="text-sm font-bold text-on-surface">
-                        BP Consistency
+                    <Checkbox
+                      checked={bpChecked}
+                      onCheckedChange={(checked) => setBpChecked(checked === true)}
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-on-surface">
+                        Log your meal today
                       </p>
                       <p className="text-xs text-on-surface-variant">
-                        Measured twice daily
+                        Add a food entry to keep sodium in check
                       </p>
                     </div>
-                    <span
-                      className={`text-xs font-bold ${bpChecked ? "text-secondary" : "text-on-surface-variant"}`}
-                    >
+                    <span className={`text-xs font-semibold ${bpChecked ? "text-primary" : "text-on-surface-variant"}`}>
                       {bpChecked ? "Done" : "Pending"}
                     </span>
                   </div>
 
-                  {/* Fiber checklist item */}
                   <div
                     onClick={() => setFiberChecked(!fiberChecked)}
-                    className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer"
+                    className="group flex items-center gap-4 rounded-xl border border-outline-variant/70 bg-background p-4 transition-all hover:bg-surface-container-low cursor-pointer"
                   >
-                    <div
-                      className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${fiberChecked ? "bg-primary border-primary text-white" : "border-outline-variant"}`}
-                    >
-                      {fiberChecked && <CheckCircle className="h-4.5 w-4.5" />}
-                    </div>
-                    <div className="flex-grow">
-                      <p className="text-sm font-bold text-on-surface">
-                        Fiber Goals
+                    <Checkbox
+                      checked={fiberChecked}
+                      onCheckedChange={(checked) => setFiberChecked(checked === true)}
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-on-surface">
+                        Review your nutrition summary
                       </p>
                       <p className="text-xs text-on-surface-variant">
-                        25g daily intake
+                        Check dietary insights and sodium trends
                       </p>
                     </div>
-                    <span
-                      className={`text-xs font-bold ${fiberChecked ? "text-secondary" : "text-on-surface-variant"}`}
-                    >
+                    <span className={`text-xs font-semibold ${fiberChecked ? "text-primary" : "text-on-surface-variant"}`}>
                       {fiberChecked ? "Done" : "4/7 days"}
                     </span>
                   </div>
 
-                  {/* Fluid checklist item */}
                   <div
                     onClick={() => setFluidChecked(!fluidChecked)}
-                    className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer"
+                    className="group flex items-center gap-4 rounded-xl border border-outline-variant/70 bg-background p-4 transition-all hover:bg-surface-container-low cursor-pointer"
                   >
-                    <div
-                      className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${fluidChecked ? "bg-primary border-primary text-white" : "border-outline-variant"}`}
-                    >
-                      {fluidChecked && <CheckCircle className="h-4.5 w-4.5" />}
-                    </div>
-                    <div className="flex-grow">
-                      <p className="text-sm font-bold text-on-surface">
-                        Fluid Intake
+                    <Checkbox
+                      checked={fluidChecked}
+                      onCheckedChange={(checked) => setFluidChecked(checked === true)}
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-on-surface">
+                        Check your target settings
                       </p>
                       <p className="text-xs text-on-surface-variant">
-                        2L baseline
+                        Confirm sodium and calorie goals for the week
                       </p>
                     </div>
-                    <span
-                      className={`text-xs font-bold ${fluidChecked ? "text-secondary" : "text-on-surface-variant"}`}
-                    >
+                    <span className={`text-xs font-semibold ${fluidChecked ? "text-primary" : "text-on-surface-variant"}`}>
                       {fluidChecked ? "Done" : "Pending"}
                     </span>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </main>
