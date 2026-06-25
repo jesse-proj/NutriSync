@@ -138,13 +138,16 @@ const Reports = () => {
 
       // Table of Logs
       nextY += 20
-      const tableData = logs.map(log => [
-        new Date(log.logged_at).toLocaleString(),
-        log.name,
-        `${Number(log.calories_kcal || 0).toFixed(2)} kcal`,
-        `${Number(log.sodium_mg || 0).toFixed(2)} mg`,
-        `${Number(log.potassium_mg || 0).toFixed(2)} mg`
-      ])
+      const tableData = logs.map(log => {
+        const dStr = log.logged_at.endsWith('Z') ? log.logged_at : log.logged_at + 'Z'
+        return [
+          new Date(dStr).toLocaleString(),
+          log.name,
+          `${Number(log.calories_kcal || 0).toFixed(2)} kcal`,
+          `${Number(log.sodium_mg || 0).toFixed(2)} mg`,
+          `${Number(log.potassium_mg || 0).toFixed(2)} mg`
+        ]
+      })
 
       autoTable(doc, {
         startY: nextY,
