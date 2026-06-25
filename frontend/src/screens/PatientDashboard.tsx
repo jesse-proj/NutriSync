@@ -16,7 +16,9 @@ import {
   Eye,
   X,
   Send,
-  CheckCircle
+  CheckCircle,
+  Check,
+  ArrowRight
 } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -24,6 +26,7 @@ import { ScrollArea, ScrollBar } from '../components/ui/scroll-area'
 import { Card, CardContent } from '../components/ui/card'
 import { Link } from 'react-router-dom'
 import PatientNavbar from '../components/PatientNavbar'
+import Footer from '@/components/Footer'
 
 interface Targets {
   sodium_mg: number;
@@ -166,9 +169,20 @@ const PatientDashboard = () => {
   const [showFoodConfirmation, setShowFoodConfirmation] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Accessibility state
-  const [isAccessibleText, setIsAccessibleText] = useState(false)
-  const [showCheckIcon, setShowCheckIcon] = useState(false)
+  const [showScanWarningModal, setShowScanWarningModal] = useState(false)
+  const [isScanWarningChecked, setIsScanWarningChecked] = useState(false)
+
+  const handleOpenScanDialog = () => {
+    setIsScanWarningChecked(false)
+    setShowScanWarningModal(true)
+  }
+
+  const handleProceedToScan = () => {
+    setShowScanWarningModal(false)
+    fileInputRef.current?.click()
+  }
+
+
 
   // Interactive Clinical Reminders states
   const [losartanTaken, setLosartanTaken] = useState(() => localStorage.getItem('losartan_taken') === 'true')
@@ -204,17 +218,7 @@ const PatientDashboard = () => {
     }
   }, [user])
 
-  // Accessibility side-effect
-  useEffect(() => {
-    if (isAccessibleText) {
-      document.documentElement.classList.add('text-lg')
-    } else {
-      document.documentElement.classList.remove('text-lg')
-    }
-    return () => {
-      document.documentElement.classList.remove('text-lg')
-    }
-  }, [isAccessibleText])
+
 
   // Prevent page scrolling when chatbot is open
   useEffect(() => {
@@ -245,9 +249,12 @@ const PatientDashboard = () => {
   const fatPct = Math.min(100, (consumedFat / (targetFat || 1)) * 100)
 
   const caloriesLeft = Math.max(0, targets.calories_kcal - consumedCalories)
+  const isCalorieSurpassed = consumedCalories > targets.calories_kcal
 
   // Circular progress ring offset calculation (r=42, circumference=264)
-  const strokeDashoffset = 264 - (264 * (consumedCalories / (targets.calories_kcal || 1)))
+  // ponytail: clamp progress to 100% and turn red if exceeded
+  const calorieProgressRatio = Math.min(1, consumedCalories / (targets.calories_kcal || 1))
+  const strokeDashoffset = 264 - (264 * calorieProgressRatio)
 
   // High sodium warnings
   const isSodiumWarning = consumedSodium > targets.sodium_mg * 0.6
@@ -301,12 +308,12 @@ const PatientDashboard = () => {
 
   const handleConfirmFoodLog = async () => {
     if (!scannedFoodData) return
-    
+
     try {
       await apiFetch('/api/food/log', {
         json: scannedFoodData
       })
-      
+
       setShowFoodConfirmation(false)
       setScannedFoodData(null)
       await fetchDashboardData()
@@ -332,13 +339,7 @@ const PatientDashboard = () => {
     localStorage.setItem('glasses_hydrated', String(count))
   }
 
-  const toggleAccessibility = () => {
-    setIsAccessibleText(prev => !prev)
-    setShowCheckIcon(true)
-    setTimeout(() => {
-      setShowCheckIcon(false)
-    }, 1000)
-  }
+
 
   return (
     <div className={`min-h-screen bg-background text-on-surface flex flex-col font-sans relative ${isChatOpen ? 'overflow-hidden' : ''}`}>
@@ -350,6 +351,74 @@ const PatientDashboard = () => {
         ref={fileInputRef}
         onChange={handleFileChange}
       />
+
+      {/* Warning Popup Modal for Food Scan */}
+      {showScanWarningModal && (
+        <div className="fixed inset-0 bg-black/50 z-[130] flex items-center justify-center backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-surface-container-lowest text-on-surface rounded-3xl shadow-xl max-w-sm w-full p-6 border border-outline-variant/30 flex flex-col gap-5 relative">
+
+            {/* Close button */}
+            <button
+              onClick={() => setShowScanWarningModal(false)}
+              className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface p-1.5 rounded-full hover:bg-outline-variant/30 transition-all cursor-pointer border-none bg-transparent"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Circle Info Icon */}
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <Info className="h-6 w-6 stroke-[2.5]" />
+            </div>
+
+            {/* Heading */}
+            <div className="flex flex-col gap-2">
+              <h2 className="text-xl font-bold tracking-tight leading-tight text-on-surface">
+                Ang NutriSync ay tumutulong, hindi nagdadoctor
+              </h2>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Ang mga kalkulasyon ng pagkain dito ay <span className="font-bold text-on-surface">tinatayang halaga lamang</span> — hindi eksaktong sukat. Palaging sundin ang payo ng iyong doktor o dietitian.
+              </p>
+            </div>
+
+            {/* Key List Points Card */}
+            <div className="bg-surface-container rounded-2xl p-4 flex flex-col gap-3.5 border border-outline-variant/10">
+              <div className="flex gap-3 items-center text-xs">
+                <Check className="h-4 w-4 text-primary shrink-0" />
+                <span className="text-on-surface-variant">Maganda para sa pag-track ng mga pagkain</span>
+              </div>
+              <div className="flex gap-3 items-center text-xs">
+                <Check className="h-4 w-4 text-primary shrink-0" />
+                <span className="text-on-surface-variant">Tumutulong na matupad ang limitasyon mula sa doktor</span>
+              </div>
+              <div className="flex gap-3 items-center text-xs">
+                <X className="h-4 w-4 text-error shrink-0" />
+                <span className="text-on-surface-variant">Hindi kapalit ng medikal na konsultasyon</span>
+              </div>
+            </div>
+
+            {/* Checkbox */}
+            <label className="flex items-center gap-3 cursor-pointer select-none py-1">
+              <input
+                type="checkbox"
+                checked={isScanWarningChecked}
+                onChange={(e) => setIsScanWarningChecked(e.target.checked)}
+                className="w-4 h-4 rounded border-outline-variant bg-surface-container text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
+              />
+              <span className="text-xs text-on-surface font-medium">Naiintindihan ko ito</span>
+            </label>
+
+            {/* Action button */}
+            <Button
+              onClick={handleProceedToScan}
+              disabled={!isScanWarningChecked}
+              className="w-full bg-primary text-on-primary hover:bg-primary-container disabled:opacity-40 disabled:cursor-not-allowed h-12 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all border-none cursor-pointer"
+            >
+              <span>Sige, magsimula na</span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Uploading loading overlay */}
       {isUploading && (
@@ -418,323 +487,306 @@ const PatientDashboard = () => {
 
       {/* Main Content */}
       <ScrollArea className="flex-grow w-full">
-      <main className="max-w-7xl mx-auto w-full px-6 py-8">
+        <main className="max-w-7xl mx-auto w-full px-6 py-8">
 
-        {/* Personalized Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-on-surface tracking-tight">
-            Good morning, {user?.full_name?.split(' ')[0] || 'Juan'}!
-          </h1>
-          <p className="text-lg text-on-surface-variant mt-1.5">
-            {logs.length === 0
-              ? "You haven't logged any meals today. Let's start healthy by logging your first meal!"
-              : `You've logged ${logs.length} meal${logs.length > 1 ? 's' : ''} today. ${isSodiumWarning
-                ? "Your sodium levels are slightly high—let's balance it out."
-                : "Your nutritional indicators are looking good today!"
-              }`}
-          </p>
-        </div>
-
-        {/* Dashboard Grid */}
-        <div className="grid grid-cols-12 gap-6">
-
-          {/* Main Content Area (Calorie ring, Sodium alerts, Macronutrients, Recent meals) */}
-          <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
-
-            {/* Bento-style Vitals Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-              {/* Calorie Tracking Ring */}
-              <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center relative overflow-hidden">
-                <div className="absolute top-4 right-4 text-outline">
-                  <Utensils className="h-5 w-5" />
-                </div>
-                <h3 className="text-xs font-semibold text-on-surface-variant mb-6 uppercase tracking-wider">
-                  Daily Calorie Budget
-                </h3>
-
-                <div className="relative w-44 h-44">
-                  <svg className="w-full h-full" viewBox="0 0 100 100">
-                    {/* Background Ring */}
-                    <circle
-                      className="text-surface-container stroke-current"
-                      cx="50"
-                      cy="50"
-                      fill="transparent"
-                      r="42"
-                      strokeWidth="8"
-                    />
-                    {/* Active Progress Ring */}
-                    <circle
-                      className="text-primary stroke-current"
-                      cx="50"
-                      cy="50"
-                      fill="transparent"
-                      r="42"
-                      strokeLinecap="round"
-                      strokeWidth="8"
-                      style={{
-                        strokeDasharray: 264,
-                        strokeDashoffset: strokeDashoffset,
-                        transition: 'stroke-dashoffset 0.35s',
-                        transform: 'rotate(-90deg)',
-                        transformOrigin: '50% 50%',
-                      }}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-extrabold text-on-surface tracking-tight">
-                      {Math.round(caloriesLeft).toLocaleString()}
-                    </span>
-                    <span className="text-xs text-outline font-medium">kcal left</span>
-                  </div>
-                </div>
-
-                <p className="mt-6 text-sm text-on-surface-variant font-medium">
-                  Goal: {targets.calories_kcal?.toLocaleString()} kcal | Consumed: {Math.round(consumedCalories).toLocaleString()} kcal
-                </p>
-              </div>
-
-              {/* Sodium Intake Summary */}
-              <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col justify-between">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-                      Sodium Intake
-                    </h3>
-                    <p className={`text-2xl font-bold mt-1 ${isSodiumWarning ? 'text-error' : 'text-primary'}`}>
-                      {(consumedSodium / 1000).toFixed(2)}g{' '}
-                      <span className="text-sm font-normal text-on-surface-variant">
-                        / {(targets.sodium_mg / 1000).toFixed(1)}g
-                      </span>
-                    </p>
-                  </div>
-                  <span className={`p-2 rounded-xl flex items-center justify-center ${isSodiumWarning ? 'bg-error-container text-error' : 'bg-surface-container text-primary'}`}>
-                    {isSodiumWarning ? <AlertTriangle className="h-5 w-5 animate-pulse" /> : <CheckCircle className="h-5 w-5" />}
-                  </span>
-                </div>
-
-                {/* Warning Alert Box */}
-                <div className={`p-7 rounded-xl flex gap-3 items-start border mb-7 ${isSodiumWarning
-                  ? 'bg-error-container text-on-error-container border-error/10'
-                  : 'bg-surface-container text-on-surface border-outline-variant/20'
-                  }`}>
-                  <Info className="h-5 w-5 shrink-0 mt-0.5" />
-                  <div className="flex flex-col">
-                    <p className="text-xs font-semibold">
-                      {isSodiumWarning ? 'Sodium Intake Alert' : 'Sodium Compliance'}
-                    </p>
-                    <p className="text-xs opacity-90 mt-0.5 leading-relaxed">
-                      {sodiumAlertMessage}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Macronutrient Progress */}
-            <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30">
-              <h3 className="text-lg font-bold text-on-surface mb-6">
-                Macronutrient Progress
-              </h3>
-              <div className="space-y-5">
-
-                {/* Protein progress */}
-                <div>
-                  <div className="flex justify-between mb-1.5 text-sm">
-                    <span className="font-semibold text-on-surface">Protein</span>
-                    <span className="text-on-surface-variant">{Math.round(consumedProtein)}g / {targetProtein}g</span>
-                  </div>
-                  <div className="w-full bg-surface-container h-3 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${proteinPct}%`, backgroundColor: '#00B4AD' }}></div>
-                  </div>
-                </div>
-
-                {/* Carbohydrates progress */}
-                <div>
-                  <div className="flex justify-between mb-1.5 text-sm">
-                    <span className="font-semibold text-on-surface">Carbohydrates</span>
-                    <span className="text-on-surface-variant">{Math.round(consumedCarbs)}g / {targets.carbs_g}g</span>
-                  </div>
-                  <div className="w-full bg-surface-container h-3 rounded-full overflow-hidden">
-                    <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${carbsPct}%` }}></div>
-                  </div>
-                </div>
-
-                {/* Fats progress */}
-                <div>
-                  <div className="flex justify-between mb-1.5 text-sm">
-                    <span className="font-semibold text-on-surface">Fats</span>
-                    <span className="text-on-surface-variant">{Math.round(consumedFat)}g / {targetFat}g</span>
-                  </div>
-                  <div className="w-full bg-surface-container h-3 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${fatPct}%`, backgroundColor: '#ED8659' }}></div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-            {/* Recent Meals */}
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-on-surface">Recent Meals</h3>
-                <span className="text-xs text-primary font-semibold">Today</span>
-              </div>
-
-              {logs.length === 0 ? (
-                <div className="p-8 bg-surface-container-low border border-dashed border-outline-variant rounded-2xl text-center text-on-surface-variant text-sm flex flex-col items-center justify-center gap-3">
-                  <Utensils className="h-8 w-8 text-outline" />
-                  <div>
-                    <p className="font-semibold">No meals logged today</p>
-                    <p className="text-xs mt-0.5">Log your meals by uploading a photo or talking to NutriGabay AI.</p>
-                  </div>
-                  <Button onClick={() => fileInputRef.current?.click()} className="mt-2 rounded-full flex gap-2">
-                    <Camera className="h-4 w-4" />
-                    Log First Meal
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                  {logs.map(log => (
-                    <MealCard
-                      key={log.id}
-                      log={log}
-                      isExpanded={expandedLogId === log.id}
-                      onToggle={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
+          {/* Personalized Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-on-surface tracking-tight">
+              Good morning, {user?.full_name?.split(' ')[0] || 'Juan'}!
+            </h1>
+            <p className="text-lg text-on-surface-variant mt-1.5">
+              {logs.length === 0
+                ? "You haven't logged any meals today. Let's start healthy by logging your first meal!"
+                : `You've logged ${logs.length} meal${logs.length > 1 ? 's' : ''} today. ${isSodiumWarning
+                  ? "Your sodium levels are slightly high—let's balance it out."
+                  : "Your nutritional indicators are looking good today!"
+                }`}
+            </p>
           </div>
 
-          {/* Right Sidebar Area (Quick Actions, Reminders, Suggestions) */}
-          <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+          {/* Dashboard Grid */}
+          <div className="grid grid-cols-12 gap-6">
 
-            {/* Quick Actions Card */}
-            <div className="flex flex-col gap-3">
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-primary text-on-primary h-14 rounded-2xl flex items-center justify-center gap-3 font-semibold text-sm shadow-lg shadow-primary/20 hover:bg-primary-container transition-all border-none cursor-pointer"
-              >
-                <Sparkles className="h-5 w-5" />
-                Log a Meal with AI
-              </Button>
-              <Button
-                onClick={() => setIsChatOpen(true)}
-                className="bg-secondary text-on-secondary h-14 rounded-2xl flex items-center justify-center gap-3 font-semibold text-sm shadow-lg shadow-secondary/20 hover:bg-gray-500 hover:opacity-95 transition-all border-none cursor-pointer"
-              >
-                <MessageSquare className="h-5 w-5 "  />
-                Ask NutriGabay
-              </Button>
-            </div>
+            {/* Main Content Area (Calorie ring, Sodium alerts, Macronutrients, Recent meals) */}
+            <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
 
-            {/* Clinical Reminders */}
-            <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30">
-              <div className="flex items-center gap-2 mb-6">
-                <Calendar className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-bold text-on-surface">Clinical Reminders</h3>
-              </div>
+              {/* Bento-style Vitals Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-              <div className="space-y-6">
-
-                {/* Losartan Medication Reminder */}
-                <div className="flex gap-4 items-start">
-                  <div className="w-10 h-10 bg-primary-container text-on-primary-container rounded-xl flex items-center justify-center shrink-0">
-                    <Pill className="h-5 w-5 text-white" />
+                {/* Calorie Tracking Ring */}
+                <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center relative overflow-hidden">
+                  <div className="absolute top-4 right-4 text-outline">
+                    <Utensils className="h-5 w-5" />
                   </div>
-                  <div className="flex-grow">
-                    <p className="text-sm font-bold text-on-surface">Losartan (50mg)</p>
-                    <p className="text-xs text-on-surface-variant font-medium mt-0.5">Due: 8:00 PM tonight</p>
-                    <button
-                      onClick={toggleLosartan}
-                      className={`mt-3 text-xs font-semibold px-4 py-1.5 rounded-full border transition-all cursor-pointer ${losartanTaken
-                        ? 'bg-green-100 border-green-300 text-green-700 font-bold flex items-center gap-1'
-                        : 'bg-transparent border-primary text-primary hover:bg-primary-container'
-                        }`}
-                    >
-                      {losartanTaken ? (
-                        <>
-                          <CheckCircle className="h-3.5 w-3.5" />
-                          Taken
-                        </>
-                      ) : (
-                        'Mark Taken'
-                      )}
-                    </button>
+                  <h3 className="text-xs font-semibold text-on-surface-variant mb-6 uppercase tracking-wider">
+                    Daily Calorie Budget
+                  </h3>
+
+                  <div className="relative w-44 h-44">
+                    <svg className="w-full h-full" viewBox="0 0 100 100">
+                      {/* Background Ring */}
+                      <circle
+                        className="text-surface-container stroke-current"
+                        cx="50"
+                        cy="50"
+                        fill="transparent"
+                        r="42"
+                        strokeWidth="8"
+                      />
+                      {/* Active Progress Ring */}
+                      <circle
+                        className={`${isCalorieSurpassed ? 'text-error' : 'text-primary'} stroke-current`}
+                        cx="50"
+                        cy="50"
+                        fill="transparent"
+                        r="42"
+                        strokeLinecap="round"
+                        strokeWidth="8"
+                        style={{
+                          strokeDasharray: 264,
+                          strokeDashoffset: strokeDashoffset,
+                          transition: 'stroke-dashoffset 0.35s',
+                          transform: 'rotate(-90deg)',
+                          transformOrigin: '50% 50%',
+                        }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-3xl font-extrabold text-on-surface tracking-tight">
+                        {Math.round(caloriesLeft).toLocaleString()}
+                      </span>
+                      <span className="text-xs text-outline font-medium">kcal left</span>
+                    </div>
                   </div>
+
+                  <p className="mt-6 text-sm text-on-surface-variant font-medium">
+                    Goal: {targets.calories_kcal?.toLocaleString()} kcal | Consumed: {Math.round(consumedCalories).toLocaleString()} kcal
+                  </p>
                 </div>
 
-                {/* Hydration Tracker Reminder */}
-                <div className="flex gap-4 items-start border-t border-outline-variant/30 pt-5">
-                  <div className="w-10 h-10 bg-secondary-container text-on-secondary-container rounded-xl flex items-center justify-center shrink-0">
-                    <Droplet className="h-5 w-5" />
+                {/* Sodium Intake Summary */}
+                <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col justify-between">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                        Sodium Intake
+                      </h3>
+                      <p className={`text-2xl font-bold mt-1 ${isSodiumWarning ? 'text-error' : 'text-primary'}`}>
+                        {(consumedSodium / 1000).toFixed(2)}g{' '}
+                        <span className="text-sm font-normal text-on-surface-variant">
+                          / {(targets.sodium_mg / 1000).toFixed(1)}g
+                        </span>
+                      </p>
+                    </div>
+                    <span className={`p-2 rounded-xl flex items-center justify-center ${isSodiumWarning ? 'bg-error-container text-error' : 'bg-surface-container text-primary'}`}>
+                      {isSodiumWarning ? <AlertTriangle className="h-5 w-5 animate-pulse" /> : <CheckCircle className="h-5 w-5" />}
+                    </span>
                   </div>
-                  <div className="flex-grow">
-                    <p className="text-sm font-bold text-on-surface">Hydration Goal</p>
-                    <p className="text-xs text-on-surface-variant font-medium mt-0.5">
-                      Drink {Math.max(0, 5 - glassesHydrated)} more glasses today
-                    </p>
 
-                    {/* Interactive Glass indicators */}
-                    <div className="mt-3.5 flex gap-1.5">
-                      {[1, 2, 3, 4, 5].map(idx => (
-                        <button
-                          key={idx}
-                          onClick={() => updateWaterCount(idx)}
-                          className={`w-7 h-2 rounded-full transition-all cursor-pointer ${idx <= glassesHydrated
-                            ? 'bg-secondary'
-                            : 'bg-surface-container hover:bg-secondary/40'
-                            }`}
-                          title={`Log ${idx} glasses`}
-                        />
-                      ))}
+                  {/* Warning Alert Box */}
+                  <div className={`p-7 rounded-xl flex gap-3 items-start border mb-7 ${isSodiumWarning
+                    ? 'bg-error-container text-on-error-container border-error/10'
+                    : 'bg-surface-container text-on-surface border-outline-variant/20'
+                    }`}>
+                    <Info className="h-5 w-5 shrink-0 mt-0.5" />
+                    <div className="flex flex-col">
+                      <p className="text-xs font-semibold">
+                        {isSodiumWarning ? 'Sodium Intake Alert' : 'Sodium Compliance'}
+                      </p>
+                      <p className="text-xs opacity-90 mt-0.5 leading-relaxed">
+                        {sodiumAlertMessage}
+                      </p>
                     </div>
                   </div>
                 </div>
 
               </div>
+
+              {/* Macronutrient Progress */}
+              <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30">
+                <h3 className="text-lg font-bold text-on-surface mb-6">
+                  Macronutrient Progress
+                </h3>
+                <div className="space-y-5">
+
+                  {/* Protein progress */}
+                  <div>
+                    <div className="flex justify-between mb-1.5 text-sm">
+                      <span className="font-semibold text-on-surface">Protein</span>
+                      <span className="text-on-surface-variant">{Math.round(consumedProtein)}g / {targetProtein}g</span>
+                    </div>
+                    <div className="w-full bg-surface-container h-3 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${proteinPct}%`, backgroundColor: '#00B4AD' }}></div>
+                    </div>
+                  </div>
+
+                  {/* Carbohydrates progress */}
+                  <div>
+                    <div className="flex justify-between mb-1.5 text-sm">
+                      <span className="font-semibold text-on-surface">Carbohydrates</span>
+                      <span className="text-on-surface-variant">{Math.round(consumedCarbs)}g / {targets.carbs_g}g</span>
+                    </div>
+                    <div className="w-full bg-surface-container h-3 rounded-full overflow-hidden">
+                      <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${carbsPct}%` }}></div>
+                    </div>
+                  </div>
+
+                  {/* Fats progress */}
+                  <div>
+                    <div className="flex justify-between mb-1.5 text-sm">
+                      <span className="font-semibold text-on-surface">Fats</span>
+                      <span className="text-on-surface-variant">{Math.round(consumedFat)}g / {targetFat}g</span>
+                    </div>
+                    <div className="w-full bg-surface-container h-3 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${fatPct}%`, backgroundColor: '#ED8659' }}></div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Recent Meals */}
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold text-on-surface">Recent Meals</h3>
+                  <span className="text-xs text-primary font-semibold">Today</span>
+                </div>
+
+                {logs.length === 0 ? (
+                  <div className="p-8 bg-surface-container-low border border-dashed border-outline-variant rounded-2xl text-center text-on-surface-variant text-sm flex flex-col items-center justify-center gap-3">
+                    <Utensils className="h-8 w-8 text-outline" />
+                    <div>
+                      <p className="font-semibold">No meals logged today</p>
+                      <p className="text-xs mt-0.5">Log your meals by uploading a photo or talking to NutriGabay AI.</p>
+                    </div>
+                    <Button onClick={handleOpenScanDialog} className="mt-2 rounded-full flex gap-2">
+                      <Camera className="h-4 w-4" />
+                      Log First Meal
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                    {logs.map(log => (
+                      <MealCard
+                        key={log.id}
+                        log={log}
+                        isExpanded={expandedLogId === log.id}
+                        onToggle={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
             </div>
 
+            {/* Right Sidebar Area (Quick Actions, Reminders, Suggestions) */}
+            <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+
+              {/* Quick Actions Card */}
+              <div className="flex flex-col gap-3">
+                <Button
+                  onClick={handleOpenScanDialog}
+                  className="bg-primary text-on-primary h-14 rounded-2xl flex items-center justify-center gap-3 font-semibold text-sm shadow-lg shadow-primary/20 hover:bg-primary-container transition-all border-none cursor-pointer"
+                >
+                  <Sparkles className="h-5 w-5" />
+                  Log a Meal with AI
+                </Button>
+                <Button
+                  onClick={() => setIsChatOpen(true)}
+                  className="bg-secondary text-on-secondary h-14 rounded-2xl flex items-center justify-center gap-3 font-semibold text-sm shadow-lg shadow-secondary/20 hover:bg-gray-500 hover:opacity-95 transition-all border-none cursor-pointer"
+                >
+                  <MessageSquare className="h-5 w-5 " />
+                  Ask NutriGabay
+                </Button>
+              </div>
+
+              {/* Clinical Reminders */}
+              <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30">
+                <div className="flex items-center gap-2 mb-6">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  <h3 className="text-lg font-bold text-on-surface">Clinical Reminders</h3>
+                </div>
+
+                <div className="space-y-6">
+
+                  {/* Losartan Medication Reminder */}
+                  <div className="flex gap-4 items-start">
+                    <div className="w-10 h-10 bg-primary-container text-on-primary-container rounded-xl flex items-center justify-center shrink-0">
+                      <Pill className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-grow">
+                      <p className="text-sm font-bold text-on-surface">Losartan (50mg)</p>
+                      <p className="text-xs text-on-surface-variant font-medium mt-0.5">Due: 8:00 PM tonight</p>
+                      <button
+                        onClick={toggleLosartan}
+                        className={`mt-3 text-xs font-semibold px-4 py-1.5 rounded-full border transition-all cursor-pointer ${losartanTaken
+                          ? 'bg-green-100 border-green-300 text-green-700 font-bold flex items-center gap-1'
+                          : 'bg-transparent border-primary text-primary hover:bg-primary-container'
+                          }`}
+                      >
+                        {losartanTaken ? (
+                          <>
+                            <CheckCircle className="h-3.5 w-3.5" />
+                            Taken
+                          </>
+                        ) : (
+                          'Mark Taken'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Hydration Tracker Reminder */}
+                  <div className="flex gap-4 items-start border-t border-outline-variant/30 pt-5">
+                    <div className="w-10 h-10 bg-secondary-container text-on-secondary-container rounded-xl flex items-center justify-center shrink-0">
+                      <Droplet className="h-5 w-5" />
+                    </div>
+                    <div className="flex-grow">
+                      <p className="text-sm font-bold text-on-surface">Hydration Goal</p>
+                      <p className="text-xs text-on-surface-variant font-medium mt-0.5">
+                        Drink {Math.max(0, 5 - glassesHydrated)} more glasses today
+                      </p>
+
+                      {/* Interactive Glass indicators */}
+                      <div className="mt-3.5 flex gap-1.5">
+                        {[1, 2, 3, 4, 5].map(idx => (
+                          <button
+                            key={idx}
+                            onClick={() => updateWaterCount(idx)}
+                            className={`w-7 h-2 rounded-full transition-all cursor-pointer ${idx <= glassesHydrated
+                              ? 'bg-secondary'
+                              : 'bg-surface-container hover:bg-secondary/40'
+                              }`}
+                            title={`Log ${idx} glasses`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
 
           </div>
 
-        </div>
+        </main>
 
-      </main>
-
-      {/* Footer */}
-      <footer className="w-full bg-surface-container-low border-t border-outline-variant/50">
-        <div className="flex flex-col items-center py-8 px-6 w-full max-w-7xl mx-auto text-center gap-4">
-          <span className="text-sm font-bold text-primary">NutriSync RPM</span>
-          <div className="flex gap-6">
-            <a className="text-on-surface-variant hover:text-secondary text-xs transition-all" href="#">Privacy Policy</a>
-            <a className="text-on-surface-variant hover:text-secondary text-xs transition-all" href="#">Terms of Service</a>
-            <a className="text-on-surface-variant hover:text-secondary text-xs transition-all" href="#">Compliance Documentation</a>
-          </div>
-          <p className="text-[11px] text-on-surface-variant opacity-85 leading-relaxed">
-            © 2026 NutriSync. All rights reserved. HIPAA Compliant | DPA 2012 Certified.
-          </p>
-        </div>
-      </footer>
-      <ScrollBar orientation="vertical" />
+        <Footer />
+        <ScrollBar orientation="vertical" />
       </ScrollArea>
 
-      {/* Text Size Toggle Utility (Accessibility FAB) */}
+      {/* Camera Meal Logger Floating Action Button (FAB) */}
       <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-2">
         <button
-          id="accessibilityToggle"
-          onClick={toggleAccessibility}
-          className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all cursor-pointer border-none ${isAccessibleText
-            ? 'bg-primary text-on-primary'
-            : 'bg-on-surface text-surface'
-            }`}
-          title="Toggle Large Text Accessibility"
+          id="cameraLogFAB"
+          onClick={handleOpenScanDialog}
+          className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all cursor-pointer border-none bg-primary text-on-primary"
+          title="Log a Meal with AI"
         >
-          {showCheckIcon ? <CheckCircle className="h-5 w-5 animate-ping" /> : <Eye className="h-5 w-5" />}
+          <Camera className="h-5 w-5" />
         </button>
       </div>
 
@@ -774,27 +826,35 @@ const PatientDashboard = () => {
               <div className="p-5 space-y-4 flex flex-col-reverse">
                 {/* Flex direction reversed to always keep latest message at the bottom while scrolling */}
                 <div className="flex flex-col gap-4">
-                {chatMessages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`p-3.5 rounded-2xl max-w-[85%] text-sm leading-relaxed shadow-xs ${msg.isUser
-                      ? 'bg-primary text-on-primary self-end rounded-tr-none'
-                      : 'bg-surface-container-lowest text-on-surface self-start rounded-tl-none border border-outline-variant/15'
-                      }`}
-                  >
-                    {msg.text}
-                  </div>
-                ))}
-                {isChatLoading && (
-                  <div className="bg-surface-container-lowest p-3 rounded-2xl rounded-tl-none border border-outline-variant/15 text-on-surface-variant self-start flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <span className="text-xs font-medium">Nag-iisip si NutriGabay...</span>
-                  </div>
-                )}
+                  {chatMessages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-3.5 rounded-2xl max-w-[85%] text-sm leading-relaxed shadow-xs ${msg.isUser
+                        ? 'bg-primary text-on-primary self-end rounded-tr-none'
+                        : 'bg-surface-container-lowest text-on-surface self-start rounded-tl-none border border-outline-variant/15'
+                        }`}
+                    >
+                      {msg.text}
+                    </div>
+                  ))}
+                  {isChatLoading && (
+                    <div className="bg-surface-container-lowest p-3 rounded-2xl rounded-tl-none border border-outline-variant/15 text-on-surface-variant self-start flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      <span className="text-xs font-medium">Nag-iisip si NutriGabay...</span>
+                    </div>
+                  )}
                 </div>
               </div>
               <ScrollBar orientation="vertical" />
             </ScrollArea>
+
+            {/* Disclaimer Warning */}
+            <div className="px-5 py-3 border-t border-outline-variant/30 flex gap-3 items-center bg-surface-container text-[11px] text-on-surface-variant">
+              <Info className="h-4.5 w-4.5 shrink-0" />
+              <p className="leading-normal">
+                Ang NutriGabay ay gabay lamang. Para sa medikal na desisyon, kumunsulta sa inyong doktor.
+              </p>
+            </div>
 
             {/* Chat Input Area */}
             <div className="p-4 border-t border-outline-variant bg-surface-container-lowest flex gap-2">
