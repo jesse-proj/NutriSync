@@ -67,6 +67,16 @@ class ClinicalAlerts(SQLModel, table=True):
     is_resolved: bool = Field(default=False)
     created_at: datetime = Field(default_factory=utc_now)
 
+class ChatMessage(SQLModel, table=True):
+    __tablename__ = "chat_messages"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    sender_id: int = Field(foreign_key="users.id", index=True)
+    receiver_id: int = Field(foreign_key="users.id", index=True)
+    message: str = Field(nullable=False)
+    is_read: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=utc_now)
+
 # JWT Auth Schemas
 class TokenResponse(SQLModel):
     access_token: str

@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
-from sqlmodel import Session
+from sqlmodel import Session, select
 from pydantic import BaseModel
 
 from app.database import get_session
-from app.models import User, UserRole, FoodLogs
+from app.models import User, UserRole, FoodLogs, DietaryTargets, ClinicalAlerts
 from app.auth import get_current_user
 from app.services.vision import get_vision_provider
 from app.services.nutrition import EdamamNutritionProvider
+from sqlmodel import select
+from datetime import datetime, time, timezone
 router = APIRouter(prefix="/food", tags=["Food Logs"])
 
 def get_current_patient(current_user: User = Depends(get_current_user)):
@@ -96,7 +98,7 @@ async def log_food(
     current_user: User = Depends(get_current_patient),
     session: Session = Depends(get_session)
 ):
-    """Log pre-analyzed food data to database"""
+    """Log pre-analyzed food data to database and trigger sodium limit alerts"""
     new_log = FoodLogs(
         patient_id=current_user.id,
         image_url=data.image_url,
@@ -113,5 +115,53 @@ async def log_food(
     session.add(new_log)
     session.commit()
     session.refresh(new_log)
-    
+
+    # Auto-generate clinical alerts for exceeded daily dietary targets (cumulative today)
+    stmt = select(DietaryTargets).where(DietaryTargets.patient_id == current_user.id)
+    targets = session.exec(stmt).first()
+    if targets:
+        # Calculate daily cumulative values (today in UTC)
+        today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min).replace(tzinfo=timezone.utc)
+        today_logs = session.exec(select(FoodLogs).where(FoodLogs.patient_id == current_user.id).where(FoodLogs.logged_at >= today_start)).all()
+        total_sodium = sum(l.sodium_mg for l in today_logs)
+        total_calories = sum(l.calories_kcal for l in today_logs)
+
+        new_alerts = []
+        # Check daily sodium limit
+        if targets.sodium_mg and total_sodium > targets.sodium_mg:
+            alert_type = "CRITICAL_SODIUM" if total_sodium > targets.sodium_mg * 1.5 else "WARNING_SODIUM"
+            # Prevent duplicate alerts for the same day
+            existing = session.exec(
+                select(ClinicalAlerts)
+                .where(ClinicalAlerts.patient_id == current_user.id)
+                .where(ClinicalAlerts.alert_type == alert_type)
+                .where(ClinicalAlerts.created_at >= today_start)
+            ).first()
+            if not existing:
+                new_alerts.append(ClinicalAlerts(
+                    patient_id=current_user.id,
+                    alert_type=alert_type,
+                    message=f"Sodium limit exceeded: {total_sodium:.0f}mg logged today (limit: {targets.sodium_mg:.0f}mg)"
+                ))
+
+        # Check daily calorie limit
+        if targets.calories_kcal and total_calories > targets.calories_kcal:
+            existing = session.exec(
+                select(ClinicalAlerts)
+                .where(ClinicalAlerts.patient_id == current_user.id)
+                .where(ClinicalAlerts.alert_type == "WARNING_CALORIES")
+                .where(ClinicalAlerts.created_at >= today_start)
+            ).first()
+            if not existing:
+                new_alerts.append(ClinicalAlerts(
+                    patient_id=current_user.id,
+                    alert_type="WARNING_CALORIES",
+                    message=f"Calorie limit exceeded: {total_calories:.0f}kcal logged today (limit: {targets.calories_kcal:.0f}kcal)"
+                ))
+
+        for alert in new_alerts:
+            session.add(alert)
+        if new_alerts:
+            session.commit()
+
     return new_log

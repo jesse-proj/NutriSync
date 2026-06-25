@@ -22,6 +22,7 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { ScrollArea, ScrollBar } from '../components/ui/scroll-area'
 import { Card } from '../components/ui/card'
+import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert'
 import PatientNavbar from '../components/PatientNavbar'
 import Footer from '@/components/Footer'
 
@@ -163,6 +164,145 @@ const PatientDashboard = () => {
   const [chatInput, setChatInput] = useState("")
   const [isChatLoading, setIsChatLoading] = useState(false)
 
+  // Direct Doctor Chat state
+  const [isDoctorChatOpen, setIsDoctorChatOpen] = useState(false)
+  const [doctorMessages, setDoctorMessages] = useState<any[]>([])
+  const [doctorChatInput, setDoctorChatInput] = useState("")
+  const [isDoctorChatLoading, setIsDoctorChatLoading] = useState(false)
+  const [unreadDoctorMessagesCount, setUnreadDoctorMessagesCount] = useState(0)
+  const [doctorProfile, setDoctorProfile] = useState<{ id: number; full_name: string; email: string } | null>(null)
+
+  const doctorSocketRef = useRef<WebSocket | null>(null)
+  const doctorMessagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Connect to Doctor WebSocket
+  const connectDoctorWebSocket = (clinicianId: number) => {
+    if (doctorSocketRef.current) {
+      doctorSocketRef.current.close()
+    }
+
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const wsUrl = `${wsProtocol}//127.0.0.1:8000/api/chat/direct/ws?token=${token}`
+    const ws = new WebSocket(wsUrl)
+
+    ws.onopen = () => {
+      console.log('Connected to doctor chat WS')
+    }
+
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data)
+      if (
+        (msg.sender_id === clinicianId && msg.receiver_id === user?.id) ||
+        (msg.sender_id === user?.id && msg.receiver_id === clinicianId)
+      ) {
+        setDoctorMessages(prev => {
+          if (prev.some(m => m.id === msg.id)) return prev
+          return [...prev, msg]
+        })
+
+        if (isDoctorChatOpen) {
+          if (msg.sender_id === clinicianId) {
+            apiFetch(`/api/chat/direct/read/${clinicianId}`, { method: 'PATCH' })
+          }
+        } else {
+          if (msg.sender_id === clinicianId) {
+            setUnreadDoctorMessagesCount(prev => prev + 1)
+          }
+        }
+      }
+    }
+
+    ws.onclose = () => {
+      console.log('Disconnected from doctor chat WS')
+    }
+
+    ws.onerror = (err) => {
+      console.error('Doctor chat WS error:', err)
+    }
+
+    doctorSocketRef.current = ws
+  }
+
+  const fetchDoctorProfileAndHistory = async () => {
+    try {
+      const doc = await apiFetch('/api/patients/clinician')
+      if (doc) {
+        setDoctorProfile(doc)
+        
+        const unreadData = await apiFetch('/api/chat/direct/unread')
+        if (unreadData) {
+          setUnreadDoctorMessagesCount(unreadData[doc.id] || 0)
+        }
+
+        connectDoctorWebSocket(doc.id)
+      }
+    } catch (err) {
+      console.log("No assigned clinician or error loading profile:", err)
+    }
+  }
+
+  useEffect(() => {
+    if (user) {
+      fetchDoctorProfileAndHistory()
+    }
+    return () => {
+      if (doctorSocketRef.current) {
+        doctorSocketRef.current.close()
+      }
+    }
+  }, [targets.sodium_mg, user])
+
+  const fetchDoctorChatHistory = async (clinicianId: number) => {
+    setIsDoctorChatLoading(true)
+    try {
+      const history = await apiFetch(`/api/chat/direct/history/${clinicianId}`)
+      if (history) setDoctorMessages(history)
+
+      await apiFetch(`/api/chat/direct/read/${clinicianId}`, { method: 'PATCH' })
+      setUnreadDoctorMessagesCount(0)
+    } catch (err) {
+      console.error("Error fetching doctor chat history:", err)
+    } finally {
+      setIsDoctorChatLoading(false)
+    }
+  }
+
+  const handleOpenDoctorChat = () => {
+    if (!doctorProfile) {
+      alert("No clinician is currently assigned to monitor your profile.")
+      return
+    }
+    setIsDoctorChatOpen(true)
+    fetchDoctorChatHistory(doctorProfile.id)
+  }
+
+  const handleSendDoctorMessage = () => {
+    if (!doctorChatInput.trim() || !doctorProfile) return
+
+    const payload = {
+      receiver_id: doctorProfile.id,
+      message: doctorChatInput.trim()
+    }
+
+    if (doctorSocketRef.current && doctorSocketRef.current.readyState === WebSocket.OPEN) {
+      doctorSocketRef.current.send(JSON.stringify(payload))
+      setDoctorChatInput("")
+    } else {
+      console.warn("WebSocket is not active. Attempting to reconnect...")
+      connectDoctorWebSocket(doctorProfile.id)
+      alert("Chat connection is currently reconnecting. Please try sending again in a moment.")
+    }
+  }
+
+  useEffect(() => {
+    if (isDoctorChatOpen) {
+      doctorMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [doctorMessages, isDoctorChatOpen])
+
   // File upload state
   const [isUploading, setIsUploading] = useState(false)
   const [scannedFoodData, setScannedFoodData] = useState<any>(null)
@@ -220,9 +360,9 @@ const PatientDashboard = () => {
 
 
 
-  // Prevent page scrolling when chatbot is open
+  // Prevent page scrolling when chatbot or doctor chat is open
   useEffect(() => {
-    if (isChatOpen) {
+    if (isChatOpen || isDoctorChatOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = 'unset'
@@ -230,7 +370,7 @@ const PatientDashboard = () => {
     return () => {
       document.body.style.overflow = 'unset'
     }
-  }, [isChatOpen])
+  }, [isChatOpen, isDoctorChatOpen])
 
   // Consumed calculations
   const consumedCalories = logs.reduce((sum, log) => sum + log.calories_kcal, 0)
@@ -503,6 +643,24 @@ const PatientDashboard = () => {
                 }`}
             </p>
           </div>
+
+          {/* Notification Alert Tab */}
+          {consumedSodium >= targets.sodium_mg * 0.9 && (
+            <Alert variant="destructive" className="mb-8 shadow-sm">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle className="flex items-center gap-2 text-red-950">
+                Pansin: Malapit o Lampas na sa Limitasyon ng Sodium!
+              </AlertTitle>
+              <AlertDescription className="mt-2 text-red-900 leading-relaxed">
+                <p>
+                  Ang iyong nakonsumong sodium ngayong araw ay umabot na sa <span className="font-bold">{Math.round(consumedSodium)} mg</span>, na nasa <span className="font-bold">{Math.round((consumedSodium / targets.sodium_mg) * 100)}%</span> ng iyong daily target limit (<span className="font-bold">{targets.sodium_mg} mg</span>).
+                </p>
+                <div className="mt-3 p-3 bg-white/70 border border-red-200/40 rounded-xl text-xs font-bold text-red-950">
+                  Paalala mula sa iyong Doctor: Mangyaring iwasan muna ang pagkain ng maaalat (tulad ng toyo, patis, bagoong, de-lata, at instant noodles) sa natitirang bahagi ng araw na ito!
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Dashboard Grid */}
           <div className="grid grid-cols-12 gap-6">
@@ -778,8 +936,34 @@ const PatientDashboard = () => {
         <ScrollBar orientation="vertical" />
       </ScrollArea>
 
-      {/* Camera Meal Logger Floating Action Button (FAB) */}
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-2">
+      {/* Floating Action Buttons (FABs) Stack */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+        {/* Chat with Doctor FAB */}
+        {doctorProfile && (
+          <button
+            onClick={handleOpenDoctorChat}
+            className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all cursor-pointer border-none bg-secondary text-white relative"
+            title="Chat with your Doctor"
+          >
+            <MessageSquare className="h-5 w-5" />
+            {unreadDoctorMessagesCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-error text-white text-[10px] font-bold h-5 min-w-5 px-1 rounded-full flex items-center justify-center animate-pulse">
+                {unreadDoctorMessagesCount}
+              </span>
+            )}
+          </button>
+        )}
+
+        {/* AI Chatbot FAB */}
+        <button
+          onClick={() => setIsChatOpen(true)}
+          className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all cursor-pointer border-none bg-primary-container text-on-primary-container"
+          title="Chat with NutriGabay AI"
+        >
+          <Sparkles className="h-5 w-5" />
+        </button>
+
+        {/* Camera Meal Logger FAB */}
         <button
           id="cameraLogFAB"
           onClick={handleOpenScanDialog}
@@ -879,6 +1063,116 @@ const PatientDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Doctor Chat Side Drawer (Direct Chat) */}
+      {isDoctorChatOpen && doctorProfile && (
+        <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+          {/* Backdrop */}
+          <div
+            onClick={() => setIsDoctorChatOpen(false)}
+            className="absolute inset-0 bg-black/45 backdrop-blur-xs transition-opacity duration-300"
+          />
+
+          {/* Drawer Panel */}
+          <div className="relative w-full max-w-md bg-surface h-full shadow-2xl flex flex-col z-10 transition-transform duration-300 animate-slide-in-right">
+
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-outline-variant flex items-center justify-between bg-surface-container">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
+                  <MessageSquare className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-on-surface">{doctorProfile.full_name}</h3>
+                  <p className="text-[10px] text-on-surface-variant font-medium">Your Direct Medical Monitoring Link</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsDoctorChatOpen(false)}
+                className="p-1.5 rounded-full hover:bg-outline-variant/30 transition-all text-on-surface-variant border-none cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Conversation Messages Box */}
+            <ScrollArea className="flex-grow bg-background w-full overflow-hidden">
+              <div className="p-5 space-y-4 flex flex-col">
+                {isDoctorChatLoading ? (
+                  <div className="py-20 text-center text-on-surface-variant text-sm flex flex-col items-center justify-center gap-2">
+                    <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+                    <span>Loading conversation history...</span>
+                  </div>
+                ) : doctorMessages.length === 0 ? (
+                  <div className="py-20 text-center text-on-surface-variant text-xs flex flex-col items-center justify-center gap-3 px-6">
+                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
+                      <MessageSquare className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-on-surface">Direct Line Active</p>
+                      <p className="mt-1 leading-relaxed">No messages yet. Send a message to start a secure direct chat with your supervising clinician.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {doctorMessages.map((msg, idx) => {
+                      const isCurrentUser = msg.sender_id === user?.id
+                      return (
+                        <div
+                          key={msg.id || idx}
+                          className={`p-3.5 rounded-2xl max-w-[85%] text-sm leading-relaxed shadow-xs ${
+                            isCurrentUser
+                              ? 'bg-secondary text-white self-end rounded-tr-none'
+                              : 'bg-surface-container-lowest text-on-surface self-start rounded-tl-none border border-outline-variant/15'
+                          }`}
+                        >
+                          <p>{msg.message}</p>
+                          <span className={`text-[9px] mt-1 block text-right font-medium opacity-60`}>
+                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      )
+                    })}
+                    <div ref={doctorMessagesEndRef} />
+                  </div>
+                )}
+              </div>
+              <ScrollBar orientation="vertical" />
+            </ScrollArea>
+
+            {/* HIPAA Compliance Disclaimer */}
+            <div className="px-5 py-3 border-t border-outline-variant/30 flex gap-3 items-center bg-surface-container text-[10px] text-on-surface-variant">
+              <Info className="h-4.5 w-4.5 shrink-0 text-secondary" />
+              <p className="leading-normal font-medium">
+                HIPAA & DPA 2012 Encrypted. This direct communication line is secure and monitored for clinical safety compliance.
+              </p>
+            </div>
+
+            {/* Chat Input Area */}
+            <div className="p-4 border-t border-outline-variant bg-surface-container-lowest flex gap-2">
+              <Input
+                type="text"
+                placeholder="Type a secure message to your doctor..."
+                className="flex-grow bg-background border-outline-variant"
+                value={doctorChatInput}
+                onChange={e => setDoctorChatInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSendDoctorMessage()}
+                disabled={isDoctorChatLoading}
+              />
+              <Button
+                onClick={handleSendDoctorMessage}
+                disabled={isDoctorChatLoading || !doctorChatInput.trim()}
+                className="rounded-xl px-4 bg-secondary hover:bg-secondary/90 text-white border-none cursor-pointer"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+
+          </div>
+        </div>
+      )}
+      
+      {/* Disclaimer Modal */}
 
     </div>
   )
