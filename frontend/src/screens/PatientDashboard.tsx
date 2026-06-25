@@ -135,6 +135,10 @@ const PatientDashboard = () => {
   // Doctor chat hook
   const doctorChat = useDoctorChat(user?.id);
 
+  useEffect(() => {
+    document.title = "Patient Dashboard | NutriSync";
+  }, []);
+
   // File upload state
   const [isUploading, setIsUploading] = useState(false);
   const [scannedFoodData, setScannedFoodData] = useState<any>(null);

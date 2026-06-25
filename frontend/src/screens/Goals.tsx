@@ -1,15 +1,20 @@
 import { useState, useEffect } from "react";
-import { Edit, CheckCircle, Sparkles } from "lucide-react";
+import { CheckCircle, Sparkles } from "lucide-react";
 import { ScrollArea, ScrollBar } from "../components/ui/scroll-area";
 import Footer from "../components/Footer";
 import PatientNavbar from "../components/PatientNavbar";
-import { Button } from "@/components/ui/button";
+
 import { apiFetch } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 
 // ponytail: Goals.tsx uses simple React state and inline Tailwind styles for custom progress/charts
 
 const Goals = () => {
-  const [weight, setWeight] = useState<number | null>(null);
+  useEffect(() => {
+    document.title = "Goals | NutriSync";
+  }, []);
+
+  const [weight] = useState<number | null>(null);
   const [sodiumConsumed, setSodiumConsumed] = useState(0);
   const [sodiumTarget, setSodiumTarget] = useState<number | null>(null);
   const [walkingTarget] = useState(5.0);
@@ -81,21 +86,7 @@ const Goals = () => {
                 Track and adjust your clinical objectives
               </p>
             </div>
-            <Button
-              onClick={() => {
-                const newWeight = prompt(
-                  "Enter new weight (kg:",
-                  String(weight ?? ""),
-                );
-                if (newWeight && !isNaN(Number(newWeight))) {
-                  setWeight(Number(newWeight));
-                }
-              }}
-              className="flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-all cursor-pointer"
-            >
-              <Edit className="h-4 w-4" />
-              Update Goal
-            </Button>
+
           </div>
 
           {/* Three Column Dashboard Layout */}

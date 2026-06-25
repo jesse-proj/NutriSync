@@ -5,6 +5,7 @@ import { Bell, LogOut, Check } from "lucide-react";
 import { Button } from "./ui/button";
 import { useAuth } from "../context/AuthContext";
 import logoBrand from "../assets/nutrisync.png";
+
 import { useState, useEffect, useRef } from "react";
 import { apiFetch } from "../api/client";
 
@@ -73,7 +74,7 @@ const PatientNavbar = ({ activePage }: PatientNavbarProps) => {
             to="/patient/dashboard"
             className="text-xl font-bold text-primary flex items-center gap-2"
           >
-            <img src={logoBrand} className="h-12 w-17" alt="NutriSync logo" />
+            <img src={logoBrand} className="h-12 w-16 object-contain" alt="NutriSync logo" />
           </Link>
 
           <div className="hidden md:flex gap-6 items-center">
