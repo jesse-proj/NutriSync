@@ -12,8 +12,6 @@ import {
   MessageSquare,
   Pill,
   Droplet,
-  Lightbulb,
-  Eye,
   X,
   Send,
   CheckCircle,
@@ -23,8 +21,7 @@ import {
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { ScrollArea, ScrollBar } from '../components/ui/scroll-area'
-import { Card, CardContent } from '../components/ui/card'
-import { Link } from 'react-router-dom'
+import { Card } from '../components/ui/card'
 import PatientNavbar from '../components/PatientNavbar'
 import Footer from '@/components/Footer'
 
@@ -151,7 +148,7 @@ const MealCard = ({ log, isExpanded, onToggle }: { log: FoodLog; isExpanded: boo
 }
 
 const PatientDashboard = () => {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
 
   // State for dashboard metrics
   const [targets, setTargets] = useState<Targets>({ sodium_mg: 2000, carbs_g: 250, calories_kcal: 2000, potassium_mg: 0 })
