@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { apiFetch } from '../api/client'
+import { apiFetch, API_URL } from '../api/client'
 import {
   Calendar,
   Camera,
@@ -45,6 +45,7 @@ interface FoodLog {
   potassium_mg?: number;
   protein_g?: number;
   fat_g?: number;
+  image_url?: string;
   logged_at: string;
 }
 
@@ -106,7 +107,7 @@ const MealCard = ({ log, isExpanded, onToggle }: { log: FoodLog; isExpanded: boo
           <img
             className="w-full h-full object-cover"
             alt={log.description}
-            src={getMealImage(log.description)}
+            src={log.image_url ? `${API_URL}${log.image_url}` : getMealImage(log.description)}
           />
         </div>
         <div className="flex flex-col justify-between py-1 flex-grow min-w-0">

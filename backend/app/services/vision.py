@@ -16,13 +16,13 @@ class GroqVisionProvider:
     def __init__(self):
         self.client = Groq(api_key=settings.GROQ_API_KEY_TWO)
 
-    def compress_image(self, image_bytes: bytes, max_size: int = 1_000_000) -> tuple[bytes, str]:
+    def compress_image(self, image_bytes: bytes, mime_type: str, max_size: int = 1_000_000) -> tuple[bytes, str]:
         """Compress image if it exceeds max_size. Returns (bytes, mime_type)."""
-        if len(image_bytes) <= max_size:
-            return image_bytes, "image/jpeg"
+        if len(image_bytes) <= max_size and mime_type in ("image/jpeg", "image/png", "image/webp"):
+            return image_bytes, mime_type
 
         image = Image.open(io.BytesIO(image_bytes))
-        if image.mode in ("RGBA", "P"):
+        if image.mode in ("RGBA", "P", "LA"):
             image = image.convert("RGB")
 
         image.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
@@ -43,7 +43,7 @@ class GroqVisionProvider:
         Analyze a food image and return a JSON object with the dish name and a description.
         Example: {"name": "Sinigang", "description": "1 bowl of pork sinigang, 1 cup of white rice"}
         """
-        image_bytes, mime_type = self.compress_image(image_bytes)
+        image_bytes, mime_type = self.compress_image(image_bytes, mime_type)
         b64_image = base64.b64encode(image_bytes).decode("utf-8")
 
         response = self.client.chat.completions.create(
