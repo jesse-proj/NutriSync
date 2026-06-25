@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { apiFetch } from '../api/client'
+import { AlertDialog } from '../components/ui/alert-dialog'
 import {
   Sidebar,
   SidebarContent,
@@ -37,7 +38,10 @@ import {
   RefreshCw,
   ChevronLeft,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  CheckCircle,
+  XCircle,
+  Trash2
 } from 'lucide-react'
 
 // ─── Metric Card ─────────────────────────────────────────────────────────────
@@ -132,6 +136,14 @@ const ClinicianDashboard = () => {
   const [targetPotassium, setTargetPotassium] = useState('0')
   const [isSavingTargets, setIsSavingTargets] = useState(false)
 
+  // Notification popup (replaces alert())
+  const [notify, setNotify] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  // Delete Patient Confirmation State
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deletePatientId, setDeletePatientId] = useState<number | null>(null)
+  const [deletePatientName, setDeletePatientName] = useState('')
+
   // Fetch initial data
   const fetchData = async () => {
     setLoading(true)
@@ -223,11 +235,11 @@ const ClinicianDashboard = () => {
       })
       if (updatedTargets) {
         setPatientTargets(updatedTargets)
-        alert("Dietary targets updated successfully!")
+        setNotify({ type: 'success', message: 'Dietary targets updated successfully!' })
       }
     } catch (err) {
       console.error("Error updating targets", err)
-      alert("Failed to update targets. Please try again.")
+      setNotify({ type: 'error', message: 'Failed to update targets. Please try again.' })
     } finally {
       setIsSavingTargets(false)
     }
@@ -256,16 +268,43 @@ const ClinicianDashboard = () => {
         setAddName('')
         setAddEmail('')
         setAddPassword('')
-        alert(`Patient account for ${newPatient.full_name} created successfully!`)
+        setNotify({ type: 'success', message: `Patient account for ${newPatient.full_name} created successfully!` })
         fetchData()
         setActiveView('patients')
         handleSelectPatient(newPatient)
       }
     } catch (err: any) {
       console.error("Error creating patient account", err)
-      alert(err.message || "Failed to create patient account")
+      setNotify({ type: 'error', message: err.message || 'Failed to create patient account' })
     } finally {
       setIsSubmittingPatient(false)
+    }
+  }
+
+  const handleDeletePatient = (patientId: number, name: string) => {
+    setDeletePatientId(patientId)
+    setDeletePatientName(name)
+    setDeleteConfirmOpen(true)
+  }
+
+  const executeDeletePatient = async () => {
+    if (deletePatientId === null) return
+    try {
+      const result = await apiFetch(`/api/clinicians/patients/${deletePatientId}`, {
+        method: 'DELETE'
+      })
+      if (result?.success) {
+        setNotify({ type: 'success', message: `Patient "${deletePatientName}" deleted successfully.` })
+        setSelectedPatient(null)
+        fetchData()
+      }
+    } catch (err: any) {
+      console.error("Error deleting patient", err)
+      setNotify({ type: 'error', message: err.message || 'Failed to delete patient' })
+    } finally {
+      setDeleteConfirmOpen(false)
+      setDeletePatientId(null)
+      setDeletePatientName('')
     }
   }
 
@@ -408,14 +447,25 @@ const ClinicianDashboard = () => {
             ) : selectedPatient ? (
               // ── PATIENT DETAIL VIEW ──────────────────────────────────────────
               <div className="flex flex-col gap-6">
-                <div className="flex items-center gap-3">
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedPatient(null)} className="flex items-center gap-1 rounded-lg">
-                    <ChevronLeft className="h-4 w-4" />
-                    Back
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedPatient(null)} className="flex items-center gap-1 rounded-lg">
+                      <ChevronLeft className="h-4 w-4" />
+                      Back
+                    </Button>
+                    <div className="h-4 w-px bg-outline-variant" />
+                    <h1 className="text-2xl font-bold tracking-tight text-on-surface">{selectedPatient.full_name}</h1>
+                    <span className="text-xs text-on-surface-variant">({selectedPatient.email})</span>
+                  </div>
+                  <Button
+                    onClick={() => handleDeletePatient(selectedPatient.id, selectedPatient.full_name)}
+                    size="sm"
+                    className="bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 text-xs font-bold px-3 flex items-center gap-1 border-none cursor-pointer"
+                    title="Delete Patient"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete Patient
                   </Button>
-                  <div className="h-4 w-px bg-outline-variant" />
-                  <h1 className="text-2xl font-bold tracking-tight text-on-surface">{selectedPatient.full_name}</h1>
-                  <span className="text-xs text-on-surface-variant">({selectedPatient.email})</span>
                 </div>
 
                 <div className="grid grid-cols-12 gap-6">
@@ -555,9 +605,20 @@ const ClinicianDashboard = () => {
                               <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Active</span>
                             </td>
                             <td className="px-6 py-4 text-right">
-                              <Button onClick={() => handleSelectPatient(patient)} size="sm" className="bg-secondary-container text-on-surface hover:bg-secondary-container/80 text-xs font-bold px-3">
-                                View Profile & Logs
-                              </Button>
+                              <div className="flex items-center justify-end gap-2">
+                                <Button onClick={() => handleSelectPatient(patient)} size="sm" className="bg-secondary-container text-on-surface hover:bg-secondary-container/80 text-xs font-bold px-3">
+                                  View Profile & Logs
+                                </Button>
+                                <Button
+                                  onClick={() => handleDeletePatient(patient.id, patient.full_name)}
+                                  size="sm"
+                                  className="bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 text-xs font-bold px-3 flex items-center gap-1 border-none cursor-pointer"
+                                  title="Delete Patient"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Delete
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         )
@@ -749,6 +810,39 @@ const ClinicianDashboard = () => {
                 {isSubmittingPatient ? 'Registering...' : 'Register Patient'}
               </Button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION DIALOG */}
+      <AlertDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Delete Patient Account"
+        description={`Are you sure you want to delete patient "${deletePatientName}"? This action cannot be undone and will permanently delete all logs and dietary targets.`}
+        actionText="Delete Patient"
+        onAction={executeDeletePatient}
+      />
+
+      {/* NOTIFICATION POPUP */}
+      {notify && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className={`flex items-start gap-3 px-5 py-4 rounded-2xl shadow-2xl border max-w-sm w-full ${
+            notify.type === 'success'
+              ? 'bg-green-50 border-green-200 text-green-800'
+              : 'bg-red-50 border-red-200 text-red-800'
+          }`}>
+            {notify.type === 'success'
+              ? <CheckCircle className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+              : <XCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+            }
+            <p className="text-sm font-medium flex-1 leading-snug">{notify.message}</p>
+            <button
+              onClick={() => setNotify(null)}
+              className="text-current opacity-50 hover:opacity-100 transition-opacity bg-transparent border-none cursor-pointer p-0 ml-1"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
       )}

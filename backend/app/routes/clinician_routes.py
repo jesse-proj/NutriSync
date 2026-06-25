@@ -67,6 +67,36 @@ def create_patient(patient_data: PatientCreate, current_user: User = Depends(get
 
     return new_patient
 
+@router.delete("/patients/{patient_id}")
+def delete_patient(patient_id: int, current_user: User = Depends(get_current_clinician), session: Session = Depends(get_session)):
+    # Verify patient exists
+    patient = session.get(User, patient_id)
+    if not patient or patient.role != UserRole.PATIENT:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
+
+    # Delete related dietary targets
+    targets_statement = select(DietaryTargets).where(DietaryTargets.patient_id == patient_id)
+    targets = session.exec(targets_statement).all()
+    for target in targets:
+        session.delete(target)
+
+    # Delete related food logs
+    logs_statement = select(FoodLogs).where(FoodLogs.patient_id == patient_id)
+    logs = session.exec(logs_statement).all()
+    for log in logs:
+        session.delete(log)
+
+    # Delete related clinical alerts
+    alerts_statement = select(ClinicalAlerts).where(ClinicalAlerts.patient_id == patient_id)
+    alerts = session.exec(alerts_statement).all()
+    for alert in alerts:
+        session.delete(alert)
+
+    # Delete patient
+    session.delete(patient)
+    session.commit()
+    return {"success": True}
+
 @router.get("/patients/{patient_id}/targets", response_model=DietaryTargets)
 def get_patient_targets(patient_id: int, current_user: User = Depends(get_current_clinician), session: Session = Depends(get_session)):
     statement = select(DietaryTargets).where(DietaryTargets.patient_id == patient_id)
