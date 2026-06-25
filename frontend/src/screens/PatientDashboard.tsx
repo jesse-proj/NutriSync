@@ -287,19 +287,16 @@ const PatientDashboard = () => {
             >
               <X className="h-5 w-5" />
             </button>
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-              <span className="h-6 w-6 stroke-[2.5]">ℹ</span>
-            </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 pr-8 pt-2">
               <h2 className="text-xl font-bold tracking-tight leading-tight text-on-surface">
-                Ang NutriSync ay tumutulong, hindi nagdadoctor
+                Ang NutriSync ay isang gabay, hindi doktor
               </h2>
               <p className="text-xs text-on-surface-variant leading-relaxed">
-                Ang mga kalkulasyon ng pagkain dito ay{" "}
+                Ang mga nakatalang nutrisyon dito ay{" "}
                 <span className="font-bold text-on-surface">
-                  tinatayang halaga lamang
+                  mga pagtatantya lamang
                 </span>{" "}
-                — hindi eksaktong sukat. Palaging sundin ang payo ng iyong
+                — hindi ito eksakto. Palaging sundin ang payo ng iyong
                 doktor o dietitian.
               </p>
             </div>
@@ -307,19 +304,19 @@ const PatientDashboard = () => {
               <div className="flex gap-3 items-center text-xs">
                 <span className="h-4 w-4 text-primary shrink-0">✓</span>
                 <span className="text-on-surface-variant">
-                  Maganda para sa pag-track ng mga pagkain
+                  Epektibo para sa pag-track ng iyong pagkain
                 </span>
               </div>
               <div className="flex gap-3 items-center text-xs">
                 <span className="h-4 w-4 text-primary shrink-0">✓</span>
                 <span className="text-on-surface-variant">
-                  Tumutulong na matupad ang limitasyon mula sa doktor
+                  Tumutulong na sundin ang limitasyon na ibinigay ng doktor
                 </span>
               </div>
               <div className="flex gap-3 items-center text-xs">
                 <span className="h-4 w-4 text-error shrink-0">✗</span>
                 <span className="text-on-surface-variant">
-                  Hindi kapalit ng medikal na konsultasyon
+                  Hindi pamalit sa medikal na konsultasyon
                 </span>
               </div>
             </div>
@@ -337,7 +334,7 @@ const PatientDashboard = () => {
             <Button
               onClick={handleProceedToScan}
               disabled={!isScanWarningChecked}
-              className="w-full bg-primary text-on-primary hover:bg-primary-container disabled:opacity-40 disabled:cursor-not-allowed h-12 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all border-none cursor-pointer"
+              className="w-full bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed h-12 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all border-none cursor-pointer"
             >
               <span>Sige, magsimula na</span>
               <ArrowRight className="h-4 w-4" />
