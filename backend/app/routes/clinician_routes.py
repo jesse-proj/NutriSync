@@ -37,6 +37,8 @@ class DietaryTargetsUpdate(BaseModel):
     carbs_g: Optional[float] = None
     calories_kcal: Optional[float] = None
     potassium_mg: Optional[float] = None
+    protein_g: Optional[float] = None
+    fat_g: Optional[float] = None
 
 
 class PatientLinkRequest(BaseModel):

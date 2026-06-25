@@ -34,12 +34,14 @@ class UserCreate(UserBase):
 class UserRead(UserBase):
     id: int
 
+
 class PatientClinicianLink(SQLModel, table=True):
     __tablename__ = "patient_clinician_links"
 
     patient_id: int = Field(foreign_key="users.id", primary_key=True)
     clinician_id: int = Field(foreign_key="users.id", primary_key=True)
     linked_at: datetime = Field(default_factory=utc_now)
+
 
 class User(UserBase, table=True):
     __tablename__ = "users"
@@ -66,6 +68,10 @@ class DietaryTargets(SQLModel, table=True):
     potassium_mg: Optional[float] = Field(
         default=None, description="Daily potassium limit in mg"
     )
+    protein_g: Optional[float] = Field(
+        default=None, description="Daily protein limit in g"
+    )
+    fat_g: Optional[float] = Field(default=None, description="Daily fat limit in g")
     updated_at: datetime = Field(default_factory=utc_now)
 
 
