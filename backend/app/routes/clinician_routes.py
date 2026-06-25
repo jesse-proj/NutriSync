@@ -3,10 +3,12 @@ from sqlmodel import Session, select
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
+from groq import Groq
 
 from app.database import get_session
-from app.models import User, UserRole, DietaryTargets, ClinicalAlerts
-from app.auth import get_current_user
+from app.models import User, UserRole, DietaryTargets, ClinicalAlerts, FoodLogs
+from app.auth import get_current_user, get_password_hash
+from app.config import settings
 
 router = APIRouter(prefix="/clinicians", tags=["Clinicians"])
 
@@ -21,13 +23,49 @@ class DietaryTargetsUpdate(BaseModel):
     calories_kcal: Optional[float] = None
     potassium_mg: Optional[float] = None
 
+class PatientCreate(BaseModel):
+    email: str
+    full_name: str
+    password: str
+    consent_given: bool = True
+
 @router.get("/patients", response_model=List[User])
 def get_patients(current_user: User = Depends(get_current_clinician), session: Session = Depends(get_session)):
-    # In a real scenario, there would be an assignment table.
     # For now, return all patients.
     statement = select(User).where(User.role == UserRole.PATIENT)
     patients = session.exec(statement).all()
     return patients
+
+@router.post("/patients", response_model=User, status_code=status.HTTP_201_CREATED)
+def create_patient(patient_data: PatientCreate, current_user: User = Depends(get_current_clinician), session: Session = Depends(get_session)):
+    # Check if email already registered
+    statement = select(User).where(User.email == patient_data.email)
+    existing_user = session.exec(statement).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An account with this email address already exists.",
+        )
+
+    # Create the patient
+    hashed_pwd = get_password_hash(patient_data.password)
+    new_patient = User(
+        email=patient_data.email,
+        full_name=patient_data.full_name,
+        role=UserRole.PATIENT,
+        consent_given=patient_data.consent_given,
+        hashed_password=hashed_pwd
+    )
+    session.add(new_patient)
+    session.commit()
+    session.refresh(new_patient)
+
+    # Initialize default dietary targets linked to this clinician
+    targets = DietaryTargets(patient_id=new_patient.id, clinician_id=current_user.id)
+    session.add(targets)
+    session.commit()
+
+    return new_patient
 
 @router.get("/patients/{patient_id}/targets", response_model=DietaryTargets)
 def get_patient_targets(patient_id: int, current_user: User = Depends(get_current_clinician), session: Session = Depends(get_session)):
@@ -62,6 +100,55 @@ def update_patient_targets(patient_id: int, targets_update: DietaryTargetsUpdate
     session.commit()
     session.refresh(db_targets)
     return db_targets
+
+@router.get("/patients/{patient_id}/logs", response_model=List[FoodLogs])
+def get_patient_logs(patient_id: int, current_user: User = Depends(get_current_clinician), session: Session = Depends(get_session)):
+    # Verify patient exists
+    patient = session.get(User, patient_id)
+    if not patient or patient.role != UserRole.PATIENT:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
+
+    statement = select(FoodLogs).where(FoodLogs.patient_id == patient_id).order_by(FoodLogs.logged_at.desc())
+    logs = session.exec(statement).all()
+    return logs
+
+@router.get("/patients/{patient_id}/summary")
+def get_patient_report_summary(patient_id: int, current_user: User = Depends(get_current_clinician), session: Session = Depends(get_session)):
+    # Verify patient exists
+    patient = session.get(User, patient_id)
+    if not patient or patient.role != UserRole.PATIENT:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
+
+    statement = select(FoodLogs).where(FoodLogs.patient_id == patient_id).order_by(FoodLogs.logged_at.desc()).limit(30)
+    logs = session.exec(statement).all()
+    
+    if not logs:
+        return {"summary": "No meals logged recently."}
+    
+    total_calories = round(sum(log.calories_kcal for log in logs), 2)
+    total_sodium = round(sum(log.sodium_mg for log in logs), 2)
+    
+    prompt = f"The patient has logged {len(logs)} meals recently. Total calories: {total_calories} kcal, Total sodium: {total_sodium} mg. Write a concise, 2-3 sentence objective clinical summary of their nutritional habits and goal progression for their doctor to review."
+    
+    try:
+        groq_client = Groq(api_key=settings.GROQ_API_KEY)
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a clinical AI assistant summarizing patient data for a doctor. Keep the response objective, clinical, and very concise (2-3 sentences max).",
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model="llama-3.1-8b-instant",
+        )
+        summary = chat_completion.choices[0].message.content
+        return {"summary": summary}
+    except Exception as e:
+        return {"summary": "Failed to generate AI summary at this time.", "error": str(e)}
 
 @router.get("/alerts", response_model=List[ClinicalAlerts])
 def get_all_alerts(current_user: User = Depends(get_current_clinician), session: Session = Depends(get_session)):
