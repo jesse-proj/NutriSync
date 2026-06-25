@@ -30,7 +30,6 @@ import {
   Search,
   Bell,
   Settings,
-  Utensils,
   BadgeCheck,
   AlertCircle,
   Plus,
@@ -775,7 +774,7 @@ const ClinicianDashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                   <MetricCard icon={Users} iconClass="text-secondary" label="Total Patients" value={patients.length.toString()} badge="Active" badgeClass="text-green-700 bg-green-50 px-2 py-0.5 rounded-full" onClick={() => setActiveView('patients')} />
                   <MetricCard icon={AlertCircle} iconClass="text-error" label="High Risk Alerts" value={alerts.length.toString()} badge="Critical" badgeClass="text-red-700 bg-red-50 px-2 py-0.5 rounded-full" onClick={() => setActiveView('urgent-tasks')} />
-                  <MetricCard icon={Utensils} iconClass="text-primary" label="Patient Directory" value={patients.length.toString()} badge="Directory" badgeClass="text-primary bg-primary/5 px-2 py-0.5 rounded-full" onClick={() => setActiveView('patients')} />
+                  <MetricCard icon={MessageSquare} iconClass="text-blue-500" label="Messages Hub" value={totalUnreadCount.toString()} badge={totalUnreadCount > 0 ? `${totalUnreadCount} Unread` : "All Read"} badgeClass={totalUnreadCount > 0 ? "text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full" : "text-green-700 bg-green-50 px-2 py-0.5 rounded-full"} onClick={() => setActiveView('messages')} />
                   <MetricCard icon={BadgeCheck} iconClass="text-primary" label="Compliance Monitoring" value="100%" badge="Normal" badgeClass="text-green-700 bg-green-50 px-2 py-0.5 rounded-full" />
                 </div>
 
