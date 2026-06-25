@@ -157,6 +157,21 @@ const ClinicianDashboard = () => {
     }
   }, []);
 
+  const fetchAlerts = useCallback(async () => {
+    try {
+      const alertData = await apiFetch("/api/clinicians/alerts");
+      if (alertData) setAlerts(alertData);
+    } catch (err) {
+      console.error("Failed to fetch clinician alerts", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(fetchAlerts, 15000);
+    return () => clearInterval(interval);
+  }, [user, fetchAlerts]);
+
   // WebSocket
   const connectWebSocket = useCallback(() => {
     if (clinicianSocketRef.current) clinicianSocketRef.current.close();
@@ -565,10 +580,28 @@ const ClinicianDashboard = () => {
 
                   {/* Food Logs */}
                   <div className="col-span-12 lg:col-span-8 bg-white border border-outline-variant p-6 rounded-2xl shadow-sm flex flex-col">
-                    <h3 className="text-base font-bold text-on-surface mb-6 flex items-center gap-2">
-                      <Utensils className="h-5 w-5 text-secondary" /> Patient
-                      Meal Logs
-                    </h3>
+                    <div className="flex items-center justify-between gap-2 mb-4">
+                      <h3 className="text-base font-bold text-on-surface flex items-center gap-2">
+                        <Utensils className="h-5 w-5 text-secondary" /> Patient
+                        Meal Logs
+                      </h3>
+                      {patientTargets && patientLogs.length > 0 && (() => {
+                        const totalSodium = patientLogs.reduce(
+                          (sum, log) => sum + log.sodium_mg,
+                          0,
+                        );
+                        const effectiveSodiumGoal =
+                          patientTargets.sodium_mg ?? 2000;
+                        if (totalSodium > effectiveSodiumGoal) {
+                          return (
+                            <span className="rounded-full bg-red-50 border border-red-200 px-3 py-1 text-sm font-semibold text-red-700">
+                              Critical sodium alert
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
                     {patientLogs.length === 0 ? (
                       <div className="py-12 text-center text-on-surface-variant text-sm border-2 border-dashed border-outline-variant/50 rounded-xl flex flex-col items-center justify-center gap-2">
                         <Utensils className="h-8 w-8 text-outline" />

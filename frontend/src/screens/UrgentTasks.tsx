@@ -70,6 +70,8 @@ export function UrgentTasks({ onSelectPatient, patients, onAlertResolved }: Urge
 
   useEffect(() => {
     fetchAlerts()
+    const interval = setInterval(() => fetchAlerts(), 15000)
+    return () => clearInterval(interval)
   }, [])
 
   // Resolve alert

@@ -149,12 +149,25 @@ const PatientDashboard = () => {
     fetchReminders();
   }, []);
 
-  // Filter logs to only today's local-date entries (ponytail: local midnight boundary)
-  const localMidnight = new Date();
-  localMidnight.setHours(0, 0, 0, 0);
-  const todayLogs = logs.filter(
-    (log) => new Date(log.logged_at) >= localMidnight,
-  );
+  const parseIsoDate = (dateString: string) => {
+    if (!dateString) {
+      return new Date();
+    }
+    return dateString.endsWith("Z") || dateString.includes("+")
+      ? new Date(dateString)
+      : new Date(`${dateString}Z`);
+  };
+
+  const isSameLocalDate = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  const today = new Date();
+  const todayLogs = logs.filter((log) => {
+    const logDate = parseIsoDate(log.logged_at);
+    return isSameLocalDate(logDate, today);
+  });
 
   // Friendly date label e.g. "Today, Jun 25"
   const todayLabel = new Date().toLocaleDateString("en-US", {

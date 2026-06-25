@@ -115,78 +115,87 @@ async def log_food(
     # Auto-generate clinical alerts for exceeded daily dietary targets (cumulative today)
     stmt = select(DietaryTargets).where(DietaryTargets.patient_id == current_user.id)
     targets = session.exec(stmt).first()
-    if targets:
-        # Calculate daily cumulative values relative to client's timezone offset
+    if not targets:
+        targets = DietaryTargets(
+            patient_id=current_user.id,
+            clinician_id=0,
+            sodium_mg=2000.0,
+            carbs_g=250.0,
+            calories_kcal=2000.0,
+            potassium_mg=0.0,
+            protein_g=0.0,
+            fat_g=0.0,
+        )
+
+    def get_today_start_from_header() -> datetime:
         offset_header = request.headers.get("X-Timezone-Offset")
-        if offset_header:
-            try:
-                offset_minutes = int(offset_header)
-                # Negate offset because JS has negative offsets for timezones east of UTC
-                tz = timezone(timedelta(minutes=-offset_minutes))
-                local_now = datetime.now(tz)
-                local_midnight = datetime.combine(local_now.date(), time.min).replace(tzinfo=tz)
-                today_start = local_midnight.astimezone(timezone.utc)
-            except Exception:
-                today_start = datetime.combine(
-                    datetime.now(timezone.utc).date(), time.min
-                ).replace(tzinfo=timezone.utc)
-        else:
-            today_start = datetime.combine(
+        try:
+            offset_minutes = int(offset_header)
+            # JS Date.getTimezoneOffset returns negative for timezones east of UTC
+            tz = timezone(timedelta(minutes=-offset_minutes))
+            local_now = datetime.now(tz)
+            local_midnight = datetime.combine(
+                local_now.date(), time.min
+            ).replace(tzinfo=tz)
+            return local_midnight.astimezone(timezone.utc)
+        except Exception:
+            return datetime.combine(
                 datetime.now(timezone.utc).date(), time.min
             ).replace(tzinfo=timezone.utc)
 
-        today_logs = session.exec(
-            select(FoodLogs)
-            .where(FoodLogs.patient_id == current_user.id)
-            .where(FoodLogs.logged_at >= today_start)
-        ).all()
-        total_sodium = sum(l.sodium_mg for l in today_logs)
-        total_calories = sum(l.calories_kcal for l in today_logs)
+    today_start = get_today_start_from_header()
+    today_logs = session.exec(
+        select(FoodLogs)
+        .where(FoodLogs.patient_id == current_user.id)
+        .where(FoodLogs.logged_at >= today_start)
+    ).all()
+    total_sodium = sum(l.sodium_mg for l in today_logs)
+    total_calories = sum(l.calories_kcal for l in today_logs)
 
-        new_alerts = []
-        # Check daily sodium limit
-        if targets.sodium_mg and total_sodium > targets.sodium_mg:
-            alert_type = (
-                "CRITICAL_SODIUM"
-                if total_sodium > targets.sodium_mg * 1.5
-                else "WARNING_SODIUM"
+    new_alerts = []
+    # Check daily sodium limit
+    if targets.sodium_mg and total_sodium > targets.sodium_mg:
+        alert_type = (
+            "CRITICAL_SODIUM"
+            if total_sodium > targets.sodium_mg * 1.5
+            else "WARNING_SODIUM"
+        )
+        # Prevent duplicate alerts for the same day
+        existing = session.exec(
+            select(ClinicalAlerts)
+            .where(ClinicalAlerts.patient_id == current_user.id)
+            .where(ClinicalAlerts.alert_type == alert_type)
+            .where(ClinicalAlerts.created_at >= today_start)
+        ).first()
+        if not existing:
+            new_alerts.append(
+                ClinicalAlerts(
+                    patient_id=current_user.id,
+                    alert_type=alert_type,
+                    message=f"Sodium limit exceeded: {total_sodium:.0f}mg logged today (limit: {targets.sodium_mg:.0f}mg)",
+                )
             )
-            # Prevent duplicate alerts for the same day
-            existing = session.exec(
-                select(ClinicalAlerts)
-                .where(ClinicalAlerts.patient_id == current_user.id)
-                .where(ClinicalAlerts.alert_type == alert_type)
-                .where(ClinicalAlerts.created_at >= today_start)
-            ).first()
-            if not existing:
-                new_alerts.append(
-                    ClinicalAlerts(
-                        patient_id=current_user.id,
-                        alert_type=alert_type,
-                        message=f"Sodium limit exceeded: {total_sodium:.0f}mg logged today (limit: {targets.sodium_mg:.0f}mg)",
-                    )
-                )
 
-        # Check daily calorie limit
-        if targets.calories_kcal and total_calories > targets.calories_kcal:
-            existing = session.exec(
-                select(ClinicalAlerts)
-                .where(ClinicalAlerts.patient_id == current_user.id)
-                .where(ClinicalAlerts.alert_type == "WARNING_CALORIES")
-                .where(ClinicalAlerts.created_at >= today_start)
-            ).first()
-            if not existing:
-                new_alerts.append(
-                    ClinicalAlerts(
-                        patient_id=current_user.id,
-                        alert_type="WARNING_CALORIES",
-                        message=f"Calorie limit exceeded: {total_calories:.0f}kcal logged today (limit: {targets.calories_kcal:.0f}kcal)",
-                    )
+    # Check daily calorie limit
+    if targets.calories_kcal and total_calories > targets.calories_kcal:
+        existing = session.exec(
+            select(ClinicalAlerts)
+            .where(ClinicalAlerts.patient_id == current_user.id)
+            .where(ClinicalAlerts.alert_type == "WARNING_CALORIES")
+            .where(ClinicalAlerts.created_at >= today_start)
+        ).first()
+        if not existing:
+            new_alerts.append(
+                ClinicalAlerts(
+                    patient_id=current_user.id,
+                    alert_type="WARNING_CALORIES",
+                    message=f"Calorie limit exceeded: {total_calories:.0f}kcal logged today (limit: {targets.calories_kcal:.0f}kcal)",
                 )
+            )
 
-        for alert in new_alerts:
-            session.add(alert)
-        if new_alerts:
-            session.commit()
+    for alert in new_alerts:
+        session.add(alert)
+    if new_alerts:
+        session.commit()
 
     return new_log
