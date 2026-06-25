@@ -198,14 +198,13 @@ const ClinicianDashboard = () => {
           <div className="p-8 flex flex-col gap-8 flex-1">
 
             {/* Key Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <MetricCard icon={Users} iconClass="text-secondary" label="Total Patients" value="0" badge="--" badgeClass="text-on-surface-variant" />
               <MetricCard
                 icon={AlertCircle} iconClass="text-error" label="High Risk Alerts" value="0"
                 badge="--" badgeClass="text-on-surface-variant"
               />
-              <MetricCard icon={Utensils} iconClass="text-primary" label="Pending Meal Reviews" value="0" badge="--" badgeClass="text-on-surface-variant" />
-              <MetricCard icon={BadgeCheck} iconClass="text-primary" label="Weekly Compliance" value="--" badge="--" badgeClass="text-on-surface-variant" />
+
             </div>
 
             {/* Dashboard Grid */}
