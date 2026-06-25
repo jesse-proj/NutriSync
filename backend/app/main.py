@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from app.routes.clinician_routes import router as clinician_router
 from app.routes.food_routes import router as food_router
 from app.routes.chat_routes import router as chat_router
+from app.routes.direct_chat_routes import router as direct_chat_router
 
 os.makedirs("uploads", exist_ok=True)
 
@@ -34,6 +35,7 @@ app.include_router(patient_router, prefix="/api")
 app.include_router(clinician_router, prefix="/api")
 app.include_router(food_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
+app.include_router(direct_chat_router, prefix="/api")
 
 # Configure CORS middleware — must be last so it wraps all routes as the outermost layer
 app.add_middleware(

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -42,8 +42,11 @@ import {
   ShieldCheck,
   CheckCircle,
   XCircle,
-  Trash2
+  Trash2,
+  MessageSquare,
+  Send
 } from 'lucide-react'
+import { ClinicianChatHub } from './ClinicianChatHub'
 
 // ─── Metric Card ─────────────────────────────────────────────────────────────
 
@@ -114,11 +117,16 @@ const ClinicianDashboard = () => {
   const initials = (user?.full_name ?? 'MS').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 
   // State
-  const [activeView, setActiveView] = useState<'dashboard' | 'patients' | 'urgent-tasks'>('dashboard')
+  const [activeView, setActiveView] = useState<'dashboard' | 'patients' | 'urgent-tasks' | 'messages'>('dashboard')
   const [patients, setPatients] = useState<User[]>([])
   const [alerts, setAlerts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Secure Direct Chat states
+  const [unreadCounts, setUnreadCounts] = useState<Record<number, number>>({})
+  const [activeChatPatientId, setActiveChatPatientId] = useState<number | null>(null)
+  const clinicianSocketRef = useRef<WebSocket | null>(null)
 
   // Add Patient Modal State
   const [isAddPatientOpen, setIsAddPatientOpen] = useState(false)
@@ -165,9 +173,88 @@ const ClinicianDashboard = () => {
     }
   }
 
+  // Keep refs of state to prevent stale closures in WebSocket listener
+  const activeViewRef = useRef(activeView)
+  const activeChatPatientIdRef = useRef(activeChatPatientId)
+
   useEffect(() => {
-    fetchData()
-  }, [])
+    activeViewRef.current = activeView
+  }, [activeView])
+
+  useEffect(() => {
+    activeChatPatientIdRef.current = activeChatPatientId
+  }, [activeChatPatientId])
+
+  // Connect WebSocket for clinician remote monitoring chat
+  const connectClinicianWebSocket = () => {
+    if (clinicianSocketRef.current) {
+      clinicianSocketRef.current.close()
+    }
+
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const wsUrl = `${wsProtocol}//127.0.0.1:8000/api/chat/direct/ws?token=${token}`
+    const ws = new WebSocket(wsUrl)
+
+    ws.onopen = () => {
+      console.log('Clinician direct chat WS connected')
+    }
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data)
+        if (msg.sender_id !== user?.id) {
+          setUnreadCounts(prev => {
+            const isCurrentlyChatting = activeViewRef.current === 'messages' && activeChatPatientIdRef.current === msg.sender_id
+            if (isCurrentlyChatting) {
+              return prev
+            }
+            return {
+              ...prev,
+              [msg.sender_id]: (prev[msg.sender_id] || 0) + 1
+            }
+          })
+        }
+      } catch (err) {
+        console.error("Error processing WS message in ClinicianDashboard:", err)
+      }
+    }
+
+    ws.onclose = () => {
+      console.log('Clinician direct chat WS disconnected')
+    }
+
+    clinicianSocketRef.current = ws
+  }
+
+  const fetchUnreadCounts = async () => {
+    try {
+      const counts = await apiFetch('/api/chat/direct/unread')
+      if (counts) {
+        setUnreadCounts(counts)
+      }
+    } catch (err) {
+      console.error("Error loading unread counts:", err)
+    }
+  }
+
+  // Initial mount data fetch and WS connection
+  useEffect(() => {
+    if (user) {
+      fetchData()
+      fetchUnreadCounts()
+      connectClinicianWebSocket()
+    }
+    return () => {
+      if (clinicianSocketRef.current) {
+        clinicianSocketRef.current.close()
+      }
+    }
+  }, [user])
+
+  const totalUnreadCount = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0)
 
   // Handle open patient details
   const handleSelectPatient = async (patient: User) => {
@@ -371,6 +458,21 @@ const ClinicianDashboard = () => {
                       {alerts.length > 0 && (
                         <span className="ml-auto bg-error text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
                           {alerts.length}
+                        </span>
+                      )}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => { setActiveView('messages'); setSelectedPatient(null); }}
+                      isActive={activeView === 'messages' && !selectedPatient}
+                      tooltip="Messages Hub"
+                    >
+                      <MessageSquare className={totalUnreadCount > 0 ? "text-primary animate-pulse" : ""} />
+                      <span>Messages Hub</span>
+                      {totalUnreadCount > 0 && (
+                        <span className="ml-auto bg-primary text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                          {totalUnreadCount}
                         </span>
                       )}
                     </SidebarMenuButton>
@@ -652,6 +754,19 @@ const ClinicianDashboard = () => {
                 onSelectPatient={handleSelectPatient}
                 patients={patients}
                 onAlertResolved={fetchData}
+              />
+            ) : activeView === 'messages' ? (
+              <ClinicianChatHub
+                patients={patients}
+                onSelectPatient={(p) => {
+                  setActiveChatPatientId(null)
+                  handleSelectPatient(p)
+                }}
+                unreadCounts={unreadCounts}
+                setUnreadCounts={setUnreadCounts}
+                socket={clinicianSocketRef.current}
+                currentUserId={user?.id || 0}
+                onActivePatientChange={setActiveChatPatientId}
               />
             ) : (
               // ── MAIN CLINICAL DASHBOARD VIEW ─────────────────────────────────

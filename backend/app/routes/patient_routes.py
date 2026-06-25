@@ -68,3 +68,20 @@ def get_patient_report_summary(limit: int = 30, current_user: User = Depends(get
         return {"summary": summary}
     except Exception as e:
         return {"summary": "Failed to generate AI summary at this time.", "error": str(e)}
+
+@router.get("/clinician")
+def get_assigned_clinician(current_user: User = Depends(get_current_patient), session: Session = Depends(get_session)):
+    """Retrieve the profile of the clinician assigned to this patient."""
+    statement = select(DietaryTargets).where(DietaryTargets.patient_id == current_user.id)
+    targets = session.exec(statement).first()
+    if not targets or not targets.clinician_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No clinician assigned")
+    
+    clinician = session.get(User, targets.clinician_id)
+    if not clinician:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Clinician not found")
+    return {
+        "id": clinician.id,
+        "full_name": clinician.full_name,
+        "email": clinician.email
+    }
