@@ -735,6 +735,7 @@ const PatientDashboard = () => {
                                     expandedLogId === log.id ? null : log.id,
                                   )
                                 }
+                                apiUrl={API_URL}
                               />
                             ))}
                         </div>
