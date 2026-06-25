@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ShieldCheck,
@@ -17,7 +17,12 @@ import {
 import { Button } from "../components/ui/button";
 import logoBrand from "../assets/nutrisync.png";
 
+
 const LandingPage: React.FC = () => {
+  useEffect(() => {
+    document.title = "NutriSync - Pinoy Health Tracking";
+  }, []);
+
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isTextLarge, setIsTextLarge] = useState(false);
@@ -602,7 +607,7 @@ const LandingPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <img
                   alt="NutriSync Logo"
-                  className="h-8 w-auto"
+                  className="h-8 w-auto object-contain"
                   src={logoBrand}
                 />
                 <span className="font-headline-sm text-headline-sm font-semibold text-on-surface">

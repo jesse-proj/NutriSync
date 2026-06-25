@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   User,
@@ -14,12 +14,17 @@ import {
 import { useAuth } from "../context/AuthContext";
 import logoBrand from "../assets/nutrisync.png";
 
+
 const PATIENT_COLOR = "#0058bc";
 const CLINICIAN_COLOR = "#00B4AD";
 
 const RegisterPage: React.FC = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Register | NutriSync";
+  }, []);
 
   const [role, setRole] = useState<"patient" | "clinician">("patient");
   const [fullName, setFullName] = useState("");

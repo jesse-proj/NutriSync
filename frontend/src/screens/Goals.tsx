@@ -1,17 +1,22 @@
 import { useState, useEffect } from "react";
-import { Edit, CheckCircle, Sparkles } from "lucide-react";
+import { CheckCircle, Sparkles } from "lucide-react";
 import { ScrollArea, ScrollBar } from "../components/ui/scroll-area";
 import Footer from "../components/Footer";
 import PatientNavbar from "../components/PatientNavbar";
-import { Button } from "@/components/ui/button";
+
 import { apiFetch } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 
 // ponytail: Goals.tsx uses simple React state and inline Tailwind styles for custom progress/charts
 
 const Goals = () => {
-  const [weight, setWeight] = useState<number | null>(null);
+  useEffect(() => {
+    document.title = "Goals | NutriSync";
+  }, []);
+
+  const [weight] = useState<number | null>(null);
   const [sodiumConsumed, setSodiumConsumed] = useState(0);
-  const [sodiumTarget] = useState(1500);
+  const [sodiumTarget, setSodiumTarget] = useState<number | null>(null);
   const [walkingTarget] = useState(5.0);
   const [walkingCompleted, setWalkingCompleted] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -24,16 +29,22 @@ const Goals = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const logs = await apiFetch<
-          { calories_kcal: number; sodium_mg: number; logged_at: string }[]
-        >("/api/patients/logs?limit=30");
+        const [targetsData, logs] = await Promise.all([
+          apiFetch<{ sodium_mg: number }>("/api/patients/targets"),
+          apiFetch<
+            { calories_kcal: number; sodium_mg: number; logged_at: string }[]
+          >("/api/patients/logs?limit=30"),
+        ]);
+        if (targetsData?.sodium_mg != null) {
+          setSodiumTarget(targetsData.sodium_mg);
+        }
         if (logs && logs.length > 0) {
-          const totalSodium = logs.reduce(
-            (sum, log) => sum + (log.sodium_mg || 0),
-            0,
-          );
-          setSodiumConsumed(Math.round(totalSodium));
-          // Derive a walking estimate from calorie burn (very rough: 1km ≈ 50kcal)
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const todaySodium = logs
+            .filter((l) => new Date(l.logged_at) >= today)
+            .reduce((sum, log) => sum + (log.sodium_mg || 0), 0);
+          setSodiumConsumed(Math.round(todaySodium));
           const totalCalories = logs.reduce(
             (sum, log) => sum + (log.calories_kcal || 0),
             0,
@@ -141,7 +152,7 @@ const Goals = () => {
                   Daily Sodium
                 </h3>
                 <p className="text-sm text-on-surface-variant mt-1 mb-8">
-                  Goal: &lt; {sodiumTarget}mg
+                  Goal: &lt; {sodiumTarget !== null ? `${sodiumTarget}mg` : "—"}
                 </p>
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-semibold">
@@ -207,9 +218,11 @@ const Goals = () => {
                   <div className="space-y-1">
                     <h4 className="text-lg font-bold">NutriGabay</h4>
                     <p className="text-xs opacity-90 leading-relaxed">
-                      {sodiumPct <= 100
-                        ? "You're doing great! Your sodium intake is within range. Keep up the fiber goals to maintain heart health."
-                        : "Your sodium is above target. Consider reducing high-sodium meals and drink more water."}
+                      {sodiumTarget === null
+                        ? "Loading your sodium target..."
+                        : sodiumPct <= 100
+                          ? "You're doing great! Your sodium intake is within range. Keep up the fiber goals to maintain heart health."
+                          : "Your sodium is above target. Consider reducing high-sodium meals and drink more water."}
                     </p>
                   </div>
                 </div>

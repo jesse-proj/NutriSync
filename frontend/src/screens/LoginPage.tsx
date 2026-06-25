@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import logoBrand from "../assets/nutrisync.png";
+
 import doctorConsultation from "../assets/doctor_consultation.jpg";
 
 const LoginPage: React.FC = () => {
@@ -14,6 +15,10 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    document.title = "Login | NutriSync";
+  }, []);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
