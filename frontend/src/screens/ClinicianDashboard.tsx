@@ -124,6 +124,10 @@ const ClinicianDashboard = () => {
     message: string;
   } | null>(null);
 
+  const handleNotify = (type: "success" | "error", message: string) => {
+    setNotify({ type, message });
+  };
+
   // Delete confirmation
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletePatientId, setDeletePatientId] = useState<number | null>(null);
@@ -652,7 +656,7 @@ const ClinicianDashboard = () => {
               <PatientList
                 patients={patients}
                 onSelectPatient={handleSelectPatient}
-                onNotify={setNotify}
+                onNotify={handleNotify}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
               />
