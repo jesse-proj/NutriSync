@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { apiFetch } from '../api/client'
+import { apiFetch, API_URL } from '../api/client'
 import {
   Calendar,
   Camera,
@@ -12,8 +12,6 @@ import {
   MessageSquare,
   Pill,
   Droplet,
-  Lightbulb,
-  Eye,
   X,
   Send,
   CheckCircle,
@@ -23,8 +21,7 @@ import {
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { ScrollArea, ScrollBar } from '../components/ui/scroll-area'
-import { Card, CardContent } from '../components/ui/card'
-import { Link } from 'react-router-dom'
+import { Card } from '../components/ui/card'
 import PatientNavbar from '../components/PatientNavbar'
 import Footer from '@/components/Footer'
 
@@ -45,6 +42,7 @@ interface FoodLog {
   potassium_mg?: number;
   protein_g?: number;
   fat_g?: number;
+  image_url?: string;
   logged_at: string;
 }
 
@@ -106,7 +104,7 @@ const MealCard = ({ log, isExpanded, onToggle }: { log: FoodLog; isExpanded: boo
           <img
             className="w-full h-full object-cover"
             alt={log.description}
-            src={getMealImage(log.description)}
+            src={log.image_url ? `${API_URL}${log.image_url}` : getMealImage(log.description)}
           />
         </div>
         <div className="flex flex-col justify-between py-1 flex-grow min-w-0">
@@ -150,7 +148,7 @@ const MealCard = ({ log, isExpanded, onToggle }: { log: FoodLog; isExpanded: boo
 }
 
 const PatientDashboard = () => {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
 
   // State for dashboard metrics
   const [targets, setTargets] = useState<Targets>({ sodium_mg: 2000, carbs_g: 250, calories_kcal: 2000, potassium_mg: 0 })

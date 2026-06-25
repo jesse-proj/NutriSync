@@ -25,7 +25,6 @@ const Profile = () => {
   // Medical Settings Toggles
   const [alertsEnabled, setAlertsEnabled] = useState(true)
   const [remindersEnabled, setRemindersEnabled] = useState(true)
-  const [syncEnabled, setSyncEnabled] = useState(false)
 
   return (
     <div className="min-h-screen bg-background text-on-surface flex flex-col font-sans relative">

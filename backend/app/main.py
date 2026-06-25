@@ -6,9 +6,13 @@ from app.config import settings
 from app.database import create_db_and_tables
 from app.routes.auth_routes import router as auth_router
 from app.routes.patient_routes import router as patient_router
+import os
+from fastapi.staticfiles import StaticFiles
 from app.routes.clinician_routes import router as clinician_router
 from app.routes.food_routes import router as food_router
 from app.routes.chat_routes import router as chat_router
+
+os.makedirs("uploads", exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,6 +28,7 @@ app = FastAPI(
 )
 
 # Register routes
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.include_router(auth_router, prefix="/api")
 app.include_router(patient_router, prefix="/api")
 app.include_router(clinician_router, prefix="/api")
