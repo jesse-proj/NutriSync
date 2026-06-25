@@ -140,12 +140,6 @@ const LoginPage: React.FC = () => {
                 >
                   Password
                 </label>
-                <a
-                  className="font-label-sm text-label-sm text-primary hover:underline transition-all"
-                  href="#"
-                >
-                  Forgot Password?
-                </a>
               </div>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
