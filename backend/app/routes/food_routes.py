@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
-from sqlmodel import Session
+from sqlmodel import Session, select
 from pydantic import BaseModel
 
 from app.database import get_session
-from app.models import User, UserRole, FoodLogs
+from app.models import User, UserRole, FoodLogs, DietaryTargets, ClinicalAlerts
 from app.auth import get_current_user
 from app.services.vision import get_vision_provider
 from app.services.nutrition import EdamamNutritionProvider
@@ -113,5 +113,39 @@ async def log_food(
     session.add(new_log)
     session.commit()
     session.refresh(new_log)
-    
+
+    # Auto-generate clinical alerts for exceeded dietary targets
+    stmt = select(DietaryTargets).where(DietaryTargets.patient_id == current_user.id)
+    targets = session.exec(stmt).first()
+    if targets:
+        new_alerts = []
+        if targets.sodium_mg and new_log.sodium_mg > targets.sodium_mg * 1.5:
+            new_alerts.append(ClinicalAlerts(
+                patient_id=current_user.id,
+                alert_type="CRITICAL_SODIUM",
+                message=f"Sodium critically exceeded: {new_log.sodium_mg:.0f}mg in '{new_log.name}' (limit: {targets.sodium_mg:.0f}mg, {int(new_log.sodium_mg / targets.sodium_mg * 100)}% of target)"
+            ))
+        elif targets.sodium_mg and new_log.sodium_mg > targets.sodium_mg:
+            new_alerts.append(ClinicalAlerts(
+                patient_id=current_user.id,
+                alert_type="WARNING_SODIUM",
+                message=f"Sodium exceeded: {new_log.sodium_mg:.0f}mg in '{new_log.name}' (limit: {targets.sodium_mg:.0f}mg, {int(new_log.sodium_mg / targets.sodium_mg * 100)}% of target)"
+            ))
+        if targets.calories_kcal and new_log.calories_kcal > targets.calories_kcal:
+            new_alerts.append(ClinicalAlerts(
+                patient_id=current_user.id,
+                alert_type="WARNING_CALORIES",
+                message=f"Calories exceeded: {new_log.calories_kcal:.0f}kcal in '{new_log.name}' (limit: {targets.calories_kcal:.0f}kcal, {int(new_log.calories_kcal / targets.calories_kcal * 100)}% of target)"
+            ))
+        if targets.carbs_g and new_log.carbs_g > targets.carbs_g:
+            new_alerts.append(ClinicalAlerts(
+                patient_id=current_user.id,
+                alert_type="WARNING_CARBS",
+                message=f"Carbs exceeded: {new_log.carbs_g:.0f}g in '{new_log.name}' (limit: {targets.carbs_g:.0f}g, {int(new_log.carbs_g / targets.carbs_g * 100)}% of target)"
+            ))
+        for alert in new_alerts:
+            session.add(alert)
+        if new_alerts:
+            session.commit()
+
     return new_log
