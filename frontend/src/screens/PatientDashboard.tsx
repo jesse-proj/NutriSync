@@ -88,12 +88,12 @@ const getMealPeriod = (dateString: string) => {
 
 const MealCard = ({ log, isExpanded, onToggle }: { log: FoodLog; isExpanded: boolean; onToggle: () => void }) => {
   const macros = [
-    { label: 'Calories', value: `${Math.round(log.calories_kcal)} kcal`, color: 'bg-primary' },
-    { label: 'Protein', value: `${Math.round(log.protein_g || 0)}g`, color: 'bg-secondary' },
-    { label: 'Carbs', value: `${Math.round(log.carbs_g)}g`, color: 'bg-tertiary' },
-    { label: 'Fat', value: `${Math.round(log.fat_g || 0)}g`, color: 'bg-outline' },
-    { label: 'Sodium', value: `${Math.round(log.sodium_mg)}mg`, color: log.sodium_mg > 400 ? 'bg-error' : 'bg-secondary-container' },
-    { label: 'Potassium', value: `${Math.round(log.potassium_mg || 0)}mg`, color: 'bg-primary-container' },
+    { label: 'Calories', value: `${Math.round(log.calories_kcal)} kcal`, color: 'bg-[#FF6B6B]' },
+    { label: 'Protein', value: `${Math.round(log.protein_g || 0)}g`, color: 'bg-[#4ECDC4]' },
+    { label: 'Carbs', value: `${Math.round(log.carbs_g)}g`, color: 'bg-[#95E77E]' },
+    { label: 'Fat', value: `${Math.round(log.fat_g || 0)}g`, color: 'bg-[#FFA07A]' },
+    { label: 'Sodium', value: `${Math.round(log.sodium_mg)}mg`, color: log.sodium_mg > 400 ? 'bg-[#FF6B6B]' : 'bg-[#95E77E]' },
+    { label: 'Potassium', value: `${Math.round(log.potassium_mg || 0)}mg`, color: 'bg-[#4ECDC4]' },
   ]
 
   return (
@@ -445,11 +445,11 @@ const PatientDashboard = () => {
                 </div>
                 <div className="p-3 bg-surface-container rounded-lg">
                   <p className="text-xs text-on-surface-variant">Sodium</p>
-                  <p className="text-lg font-bold text-secondary">{Math.round(scannedFoodData.sodium_mg)} mg</p>
+                  <p className="text-lg font-bold text-primary">{Math.round(scannedFoodData.sodium_mg)} mg</p>
                 </div>
                 <div className="p-3 bg-surface-container rounded-lg">
                   <p className="text-xs text-on-surface-variant">Protein</p>
-                  <p className="text-lg font-bold" style={{ color: '#00B4AD' }}>{Math.round(scannedFoodData.protein_g)}g</p>
+                  <p className="text-lg font-bold text-primary">{Math.round(scannedFoodData.protein_g)}g</p>
                 </div>
                 <div className="p-3 bg-surface-container rounded-lg">
                   <p className="text-xs text-on-surface-variant">Carbs</p>
@@ -457,11 +457,11 @@ const PatientDashboard = () => {
                 </div>
                 <div className="p-3 bg-surface-container rounded-lg">
                   <p className="text-xs text-on-surface-variant">Fat</p>
-                  <p className="text-lg font-bold" style={{ color: '#ED8659' }}>{Math.round(scannedFoodData.fat_g)}g</p>
+                  <p className="text-lg font-bold text-primary">{Math.round(scannedFoodData.fat_g)}g</p>
                 </div>
                 <div className="p-3 bg-surface-container rounded-lg">
                   <p className="text-xs text-on-surface-variant">Potassium</p>
-                  <p className="text-lg font-bold text-primary-container">{Math.round(scannedFoodData.potassium_mg)}mg</p>
+                  <p className="text-lg font-bold text-primary">{Math.round(scannedFoodData.potassium_mg)}mg</p>
                 </div>
               </div>
             </div>
