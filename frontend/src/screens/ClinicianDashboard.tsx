@@ -22,22 +22,10 @@ import {
 } from "../components/ui/sidebar";
 import logoBrand from "../assets/nutrisync.png";
 import {
-  Activity,
-  Heart,
-  Droplet,
-  ChevronDown,
-  ChevronRight,
-  TrendingUp,
-  Brain,
-  ShieldAlert,
-  Calendar,
-  Clock,
-  FileText,
   Search,
   Bell,
   Settings,
   BadgeCheck,
-  Plus,
   X,
   RefreshCw,
   ChevronLeft,
@@ -48,7 +36,6 @@ import {
   Utensils,
   LayoutDashboard,
   Users,
-  UserPlus,
   HelpCircle,
   LogOut,
   AlertCircle,
@@ -876,11 +863,10 @@ const ClinicianDashboard = () => {
       {notify && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-200 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div
-            className={`flex items-start gap-3 px-5 py-4 rounded-2xl shadow-2xl border max-w-sm w-full ${
-              notify.type === "success"
-                ? "bg-green-50 border-green-200 text-green-800"
-                : "bg-red-50 border-red-200 text-red-800"
-            }`}
+            className={`flex items-start gap-3 px-5 py-4 rounded-2xl shadow-2xl border max-w-sm w-full ${notify.type === "success"
+              ? "bg-green-50 border-green-200 text-green-800"
+              : "bg-red-50 border-red-200 text-red-800"
+              }`}
           >
             {notify.type === "success" ? (
               <CheckCircle className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />

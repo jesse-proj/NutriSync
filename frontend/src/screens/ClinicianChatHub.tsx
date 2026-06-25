@@ -10,7 +10,6 @@ import {
   Loader2,
   ExternalLink,
   ChevronLeft,
-  User
 } from 'lucide-react'
 
 interface Patient {
@@ -199,8 +198,8 @@ export function ClinicianChatHub({
                     key={patient.id}
                     onClick={() => handleSelectActivePatient(patient)}
                     className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all border-none cursor-pointer ${isSelected
-                        ? 'bg-primary/10 text-primary font-bold'
-                        : 'bg-transparent text-on-surface hover:bg-slate-100/60'
+                      ? 'bg-primary/10 text-primary font-bold'
+                      : 'bg-transparent text-on-surface hover:bg-slate-100/60'
                       }`}
                   >
                     <div className="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center text-xs font-bold text-primary shrink-0 border border-primary/10">
@@ -291,8 +290,8 @@ export function ClinicianChatHub({
                         <div
                           key={msg.id || idx}
                           className={`p-3 rounded-2xl max-w-[85%] sm:max-w-[75%] text-xs leading-relaxed shadow-xs flex flex-col ${isCurrentUser
-                              ? 'bg-primary text-white self-end rounded-tr-none'
-                              : 'bg-white text-on-surface self-start rounded-tl-none border border-outline-variant/50'
+                            ? 'bg-primary text-white self-end rounded-tr-none'
+                            : 'bg-white text-on-surface self-start rounded-tl-none border border-outline-variant/50'
                             }`}
                         >
                           <p className="whitespace-pre-wrap">{msg.message}</p>

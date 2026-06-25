@@ -1,7 +1,18 @@
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Plus, Edit2, Trash2, Clock } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Clock,
+  Pill,
+  Droplet,
+  Utensils,
+  Activity,
+  ClipboardList,
+} from "lucide-react";
 import { apiFetch } from "../api/client";
 
 interface ClinicalReminder {
@@ -30,12 +41,35 @@ const REMINDER_TYPES = [
   { value: "custom", label: "Custom" },
 ] as const;
 
-const REMINDER_ICONS: Record<string, string> = {
-  medication: "💊",
-  hydration: "💧",
-  meal: "🍽",
-  activity: "🏃",
-  custom: "📋",
+const REMINDER_CONFIG: Record<
+  string,
+  { icon: React.ComponentType<any>; bgClass: string; iconClass: string }
+> = {
+  medication: {
+    icon: Pill,
+    bgClass: "bg-rose-50 dark:bg-rose-950/30 border-rose-200/50 dark:border-rose-900/30",
+    iconClass: "text-rose-600 dark:text-rose-400",
+  },
+  hydration: {
+    icon: Droplet,
+    bgClass: "bg-blue-50 dark:bg-blue-950/30 border-blue-200/50 dark:border-blue-900/30",
+    iconClass: "text-blue-600 dark:text-blue-400",
+  },
+  meal: {
+    icon: Utensils,
+    bgClass: "bg-amber-50 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-900/30",
+    iconClass: "text-amber-600 dark:text-amber-400",
+  },
+  activity: {
+    icon: Activity,
+    bgClass: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200/50 dark:border-emerald-900/30",
+    iconClass: "text-emerald-600 dark:text-emerald-400",
+  },
+  custom: {
+    icon: ClipboardList,
+    bgClass: "bg-zinc-50 dark:bg-zinc-900/30 border-zinc-200/50 dark:border-zinc-800/30",
+    iconClass: "text-zinc-600 dark:text-zinc-400",
+  },
 };
 
 const ClinicalReminders = ({ patientId, onNotify }: ClinicalRemindersProps) => {
@@ -132,14 +166,14 @@ const ClinicalReminders = ({ patientId, onNotify }: ClinicalRemindersProps) => {
   };
 
   return (
-    <div className="bg-white border border-outline-variant p-6 rounded-2xl shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-bold text-on-surface flex items-center gap-2">
+    <Card className="border border-outline-variant/30">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <CardTitle className="text-base font-bold text-on-surface flex items-center gap-2">
           <Clock className="h-5 w-5 text-secondary" />
           Clinical Reminders
-        </h3>
+        </CardTitle>
         {!showAddForm && (
-          <button
+          <Button
             onClick={() => {
               setShowAddForm(true);
               setEditingId(null);
@@ -150,125 +184,141 @@ const ClinicalReminders = ({ patientId, onNotify }: ClinicalRemindersProps) => {
                 schedule: "",
               });
             }}
-            className="flex items-center gap-1 text-xs text-primary hover:underline cursor-pointer bg-transparent border-none px-2 py-1"
+            variant="ghost"
+            size="sm"
+            className="flex items-center gap-1 text-xs text-primary hover:underline cursor-pointer bg-transparent border-none px-2 py-1 h-8"
           >
             <Plus className="h-3.5 w-3.5" /> Add
-          </button>
+          </Button>
         )}
-      </div>
+      </CardHeader>
 
-      {/* Add/Edit Form */}
-      {showAddForm && (
-        <div className="mb-4 p-4 bg-surface-container rounded-xl border border-outline-variant/30 space-y-3">
-          <div className="flex gap-2">
-            <select
-              value={formData.reminder_type}
-              onChange={(e) =>
-                setFormData((f) => ({ ...f, reminder_type: e.target.value }))
-              }
-              className="flex-1 h-8 px-2 rounded border border-outline-variant bg-white text-sm"
-            >
-              {REMINDER_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+      <CardContent>
+        {/* Add/Edit Form */}
+        {showAddForm && (
+          <div className="mb-4 p-4 bg-surface-container rounded-xl border border-outline-variant/30 space-y-3">
+            <div className="flex gap-2">
+              <select
+                value={formData.reminder_type}
+                onChange={(e) =>
+                  setFormData((f) => ({ ...f, reminder_type: e.target.value }))
+                }
+                className="flex-1 h-8 px-2 rounded border border-outline-variant bg-white text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                {REMINDER_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+              <Input
+                placeholder="Title"
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData((f) => ({ ...f, title: e.target.value }))
+                }
+                className="flex-1 h-8 text-sm"
+              />
+            </div>
             <Input
-              placeholder="Title"
-              value={formData.title}
+              placeholder="Description (optional)"
+              value={formData.description}
               onChange={(e) =>
-                setFormData((f) => ({ ...f, title: e.target.value }))
+                setFormData((f) => ({ ...f, description: e.target.value }))
               }
-              className="flex-1 h-8 text-sm"
+              className="h-8 text-sm"
             />
+            <Input
+              placeholder="Schedule (e.g., '8:00 PM daily')"
+              value={formData.schedule}
+              onChange={(e) =>
+                setFormData((f) => ({ ...f, schedule: e.target.value }))
+              }
+              className="h-8 text-sm"
+            />
+            <div className="flex gap-2">
+              <Button onClick={handleSave} className="h-8 text-xs px-4">
+                {editingId ? "Update" : "Create"}
+              </Button>
+              <Button
+                onClick={resetForm}
+                variant="ghost"
+                className="h-8 text-xs px-4"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
-          <Input
-            placeholder="Description (optional)"
-            value={formData.description}
-            onChange={(e) =>
-              setFormData((f) => ({ ...f, description: e.target.value }))
-            }
-            className="h-8 text-sm"
-          />
-          <Input
-            placeholder="Schedule (e.g., '8:00 PM daily')"
-            value={formData.schedule}
-            onChange={(e) =>
-              setFormData((f) => ({ ...f, schedule: e.target.value }))
-            }
-            className="h-8 text-sm"
-          />
-          <div className="flex gap-2">
-            <Button onClick={handleSave} className="h-8 text-xs px-4">
-              {editingId ? "Update" : "Create"}
-            </Button>
-            <Button
-              onClick={resetForm}
-              variant="ghost"
-              className="h-8 text-xs px-4"
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* Reminders List */}
-      {loading ? (
-        <p className="text-xs text-on-surface-variant">Loading...</p>
-      ) : reminders.length === 0 ? (
-        <p className="text-xs text-on-surface-variant">No reminders yet.</p>
-      ) : (
-        <div className="space-y-3">
-          {reminders.map((reminder) => (
-            <div
-              key={reminder.id}
-              className={`p-3 rounded-xl border ${reminder.is_active ? "bg-surface-container-low" : "bg-surface-container-low/50 opacity-60"} border-outline-variant/20`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-start gap-2 flex-grow min-w-0">
-                  <span className="text-sm shrink-0">
-                    {REMINDER_ICONS[reminder.reminder_type] || "📋"}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-on-surface truncate">
-                      {reminder.title}
-                    </p>
-                    {reminder.description && (
-                      <p className="text-xs text-on-surface-variant mt-0.5">
-                        {reminder.description}
-                      </p>
-                    )}
-                    {reminder.schedule && (
-                      <p className="text-[10px] text-outline mt-1">
-                        ⏰ {reminder.schedule}
-                      </p>
-                    )}
+        {/* Reminders List */}
+        {loading ? (
+          <p className="text-xs text-on-surface-variant">Loading...</p>
+        ) : reminders.length === 0 ? (
+          <p className="text-xs text-on-surface-variant">No reminders yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {reminders.map((reminder) => {
+              const config =
+                REMINDER_CONFIG[reminder.reminder_type] ||
+                REMINDER_CONFIG.custom;
+              const Icon = config.icon;
+              return (
+                <div
+                  key={reminder.id}
+                  className={`p-3 rounded-xl border ${reminder.is_active ? "bg-surface-container-low" : "bg-surface-container-low/50 opacity-60"} border-outline-variant/20`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-3 flex-grow min-w-0">
+                      <div
+                        className={`p-2 rounded-lg border ${config.bgClass} flex items-center justify-center shrink-0`}
+                      >
+                        <Icon className={`h-4 w-4 ${config.iconClass}`} />
+                      </div>
+                      <div className="min-w-0 flex-grow">
+                        <p className="text-sm font-semibold text-on-surface truncate">
+                          {reminder.title}
+                        </p>
+                        {reminder.description && (
+                          <p className="text-xs text-on-surface-variant mt-0.5">
+                            {reminder.description}
+                          </p>
+                        )}
+                        {reminder.schedule && (
+                          <p className="text-[10px] text-outline mt-1.5 flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> {reminder.schedule}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        onClick={() => handleEdit(reminder)}
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-on-surface-variant hover:text-primary hover:bg-surface-container-high"
+                        title="Edit"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        onClick={() => handleDeactivate(reminder.id)}
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-on-surface-variant hover:text-error hover:bg-surface-container-high"
+                        title="Deactivate"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => handleEdit(reminder)}
-                    className="p-1 text-on-surface-variant hover:text-primary cursor-pointer bg-transparent border-none"
-                    title="Edit"
-                  >
-                    <Edit2 className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleDeactivate(reminder.id)}
-                    className="p-1 text-on-surface-variant hover:text-error cursor-pointer bg-transparent border-none"
-                    title="Deactivate"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

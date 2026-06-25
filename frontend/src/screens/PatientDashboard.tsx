@@ -15,15 +15,20 @@ import {
   Utensils,
   Info,
   Check,
+  Pill,
+  Droplet,
+  Activity,
+  ClipboardList,
+  Clock,
 } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ScrollArea, ScrollBar } from "../components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import PatientNavbar from "../components/PatientNavbar";
 import Footer from "@/components/Footer";
 import MealCard from "../components/MealCard";
-import DashboardStats from "../components/DashboardStats";
 import { useDoctorChat } from "../hooks/useDoctorChat";
 
 interface ClinicalReminder {
@@ -35,12 +40,35 @@ interface ClinicalReminder {
   is_active: boolean;
 }
 
-const REMINDER_ICONS: Record<string, string> = {
-  medication: "💊",
-  hydration: "💧",
-  meal: "🍽",
-  activity: "🏃",
-  custom: "📋",
+const REMINDER_CONFIG: Record<
+  string,
+  { icon: React.ComponentType<any>; bgClass: string; iconClass: string }
+> = {
+  medication: {
+    icon: Pill,
+    bgClass: "bg-rose-50 dark:bg-rose-950/30 border-rose-200/50 dark:border-rose-900/30",
+    iconClass: "text-rose-600 dark:text-rose-400",
+  },
+  hydration: {
+    icon: Droplet,
+    bgClass: "bg-blue-50 dark:bg-blue-950/30 border-blue-200/50 dark:border-blue-900/30",
+    iconClass: "text-blue-600 dark:text-blue-400",
+  },
+  meal: {
+    icon: Utensils,
+    bgClass: "bg-amber-50 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-900/30",
+    iconClass: "text-amber-600 dark:text-amber-400",
+  },
+  activity: {
+    icon: Activity,
+    bgClass: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200/50 dark:border-emerald-900/30",
+    iconClass: "text-emerald-600 dark:text-emerald-400",
+  },
+  custom: {
+    icon: ClipboardList,
+    bgClass: "bg-zinc-50 dark:bg-zinc-900/30 border-zinc-200/50 dark:border-zinc-800/30",
+    iconClass: "text-zinc-600 dark:text-zinc-400",
+  },
 };
 
 interface Targets {
@@ -597,11 +625,10 @@ const PatientDashboard = () => {
 
                   {/* Warning Alert Box */}
                   <div
-                    className={`p-7 rounded-xl flex gap-3 items-start border mb-7 ${
-                      isSodiumWarning
+                    className={`p-7 rounded-xl flex gap-3 items-start border mb-7 ${isSodiumWarning
                         ? "bg-error-container text-on-error-container border-error/10"
                         : "bg-surface-container text-on-surface border-outline-variant/20"
-                    }`}
+                      }`}
                   >
                     <Info className="h-5 w-5 shrink-0 mt-0.5" />
                     <div className="flex flex-col">
@@ -784,48 +811,58 @@ const PatientDashboard = () => {
                 {/* Right Column (span 1) */}
                 <div className="lg:col-span-1">
                   {/* Clinical Reminders (dynamic from API) */}
-                  <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 h-full">
-                    <div className="flex items-center gap-2 mb-6">
+                  <Card className="border border-outline-variant/30 h-full">
+                    <CardHeader className="flex flex-row items-center gap-2 pb-4">
                       <Calendar className="h-5 w-5 text-primary" />
-                      <h3 className="text-lg font-bold text-on-surface">
+                      <CardTitle className="text-lg font-bold text-on-surface">
                         Clinical Reminders
-                      </h3>
-                    </div>
+                      </CardTitle>
+                    </CardHeader>
 
-                    {reminders.length === 0 ? (
-                      <p className="text-xs text-on-surface-variant">
-                        No reminders set by your clinician.
-                      </p>
-                    ) : (
-                      <div className="space-y-4">
-                        {reminders.map((reminder) => (
-                          <div
-                            key={reminder.id}
-                            className="flex gap-3 items-start"
-                          >
-                            <div className="w-9 h-9 bg-primary-container text-on-primary-container rounded-lg flex items-center justify-center shrink-0 text-sm">
-                              {REMINDER_ICONS[reminder.reminder_type] || "📋"}
-                            </div>
-                            <div className="flex-grow min-w-0">
-                              <p className="text-sm font-bold text-on-surface truncate">
-                                {reminder.title}
-                              </p>
-                              {reminder.description && (
-                                <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
-                                  {reminder.description}
-                                </p>
-                              )}
-                              {reminder.schedule && (
-                                <p className="text-[10px] text-outline mt-1">
-                                  ⏰ {reminder.schedule}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                    <CardContent>
+                      {reminders.length === 0 ? (
+                        <p className="text-xs text-on-surface-variant">
+                          No reminders set by your clinician.
+                        </p>
+                      ) : (
+                        <div className="space-y-4">
+                          {reminders.map((reminder) => {
+                            const config =
+                              REMINDER_CONFIG[reminder.reminder_type] ||
+                              REMINDER_CONFIG.custom;
+                            const Icon = config.icon;
+                            return (
+                              <div
+                                key={reminder.id}
+                                className="flex gap-3 items-start p-3 rounded-xl border border-outline-variant/10 bg-surface-container-low"
+                              >
+                                <div
+                                  className={`p-2 rounded-lg border ${config.bgClass} flex items-center justify-center shrink-0`}
+                                >
+                                  <Icon className={`h-4 w-4 ${config.iconClass}`} />
+                                </div>
+                                <div className="flex-grow min-w-0">
+                                  <p className="text-sm font-semibold text-on-surface truncate">
+                                    {reminder.title}
+                                  </p>
+                                  {reminder.description && (
+                                    <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
+                                      {reminder.description}
+                                    </p>
+                                  )}
+                                  {reminder.schedule && (
+                                    <p className="text-[10px] text-outline mt-1.5 flex items-center gap-1">
+                                      <Clock className="h-3 w-3" /> {reminder.schedule}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             </div>
