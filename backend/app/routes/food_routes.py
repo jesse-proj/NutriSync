@@ -116,35 +116,49 @@ async def log_food(
     session.commit()
     session.refresh(new_log)
 
-    # Auto-generate clinical alerts for exceeded dietary targets
+    # Auto-generate clinical alerts for exceeded daily dietary targets (cumulative today)
     stmt = select(DietaryTargets).where(DietaryTargets.patient_id == current_user.id)
     targets = session.exec(stmt).first()
     if targets:
+        # Calculate daily cumulative values (today in UTC)
+        today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min).replace(tzinfo=timezone.utc)
+        today_logs = session.exec(select(FoodLogs).where(FoodLogs.patient_id == current_user.id).where(FoodLogs.logged_at >= today_start)).all()
+        total_sodium = sum(l.sodium_mg for l in today_logs)
+        total_calories = sum(l.calories_kcal for l in today_logs)
+
         new_alerts = []
-        if targets.sodium_mg and new_log.sodium_mg > targets.sodium_mg * 1.5:
-            new_alerts.append(ClinicalAlerts(
-                patient_id=current_user.id,
-                alert_type="CRITICAL_SODIUM",
-                message=f"Sodium critically exceeded: {new_log.sodium_mg:.0f}mg in '{new_log.name}' (limit: {targets.sodium_mg:.0f}mg, {int(new_log.sodium_mg / targets.sodium_mg * 100)}% of target)"
-            ))
-        elif targets.sodium_mg and new_log.sodium_mg > targets.sodium_mg:
-            new_alerts.append(ClinicalAlerts(
-                patient_id=current_user.id,
-                alert_type="WARNING_SODIUM",
-                message=f"Sodium exceeded: {new_log.sodium_mg:.0f}mg in '{new_log.name}' (limit: {targets.sodium_mg:.0f}mg, {int(new_log.sodium_mg / targets.sodium_mg * 100)}% of target)"
-            ))
-        if targets.calories_kcal and new_log.calories_kcal > targets.calories_kcal:
-            new_alerts.append(ClinicalAlerts(
-                patient_id=current_user.id,
-                alert_type="WARNING_CALORIES",
-                message=f"Calories exceeded: {new_log.calories_kcal:.0f}kcal in '{new_log.name}' (limit: {targets.calories_kcal:.0f}kcal, {int(new_log.calories_kcal / targets.calories_kcal * 100)}% of target)"
-            ))
-        if targets.carbs_g and new_log.carbs_g > targets.carbs_g:
-            new_alerts.append(ClinicalAlerts(
-                patient_id=current_user.id,
-                alert_type="WARNING_CARBS",
-                message=f"Carbs exceeded: {new_log.carbs_g:.0f}g in '{new_log.name}' (limit: {targets.carbs_g:.0f}g, {int(new_log.carbs_g / targets.carbs_g * 100)}% of target)"
-            ))
+        # Check daily sodium limit
+        if targets.sodium_mg and total_sodium > targets.sodium_mg:
+            alert_type = "CRITICAL_SODIUM" if total_sodium > targets.sodium_mg * 1.5 else "WARNING_SODIUM"
+            # Prevent duplicate alerts for the same day
+            existing = session.exec(
+                select(ClinicalAlerts)
+                .where(ClinicalAlerts.patient_id == current_user.id)
+                .where(ClinicalAlerts.alert_type == alert_type)
+                .where(ClinicalAlerts.created_at >= today_start)
+            ).first()
+            if not existing:
+                new_alerts.append(ClinicalAlerts(
+                    patient_id=current_user.id,
+                    alert_type=alert_type,
+                    message=f"Sodium limit exceeded: {total_sodium:.0f}mg logged today (limit: {targets.sodium_mg:.0f}mg)"
+                ))
+
+        # Check daily calorie limit
+        if targets.calories_kcal and total_calories > targets.calories_kcal:
+            existing = session.exec(
+                select(ClinicalAlerts)
+                .where(ClinicalAlerts.patient_id == current_user.id)
+                .where(ClinicalAlerts.alert_type == "WARNING_CALORIES")
+                .where(ClinicalAlerts.created_at >= today_start)
+            ).first()
+            if not existing:
+                new_alerts.append(ClinicalAlerts(
+                    patient_id=current_user.id,
+                    alert_type="WARNING_CALORIES",
+                    message=f"Calorie limit exceeded: {total_calories:.0f}kcal logged today (limit: {targets.calories_kcal:.0f}kcal)"
+                ))
+
         for alert in new_alerts:
             session.add(alert)
         if new_alerts:
