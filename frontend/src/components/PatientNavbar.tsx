@@ -16,7 +16,6 @@ const navLinks: { label: string; to: string; page: ActivePage }[] = [
   { label: 'Home',    to: '/patient/dashboard', page: 'dashboard' },
   { label: 'Reports', to: '/patient/reports',   page: 'reports'   },
   { label: 'Goals',   to: '/patient/goals',     page: 'goals'     },
-  { label: 'Profile', to: '/patient/profile',   page: 'profile'   },
 ]
 
 const PatientNavbar = ({ activePage }: PatientNavbarProps) => {

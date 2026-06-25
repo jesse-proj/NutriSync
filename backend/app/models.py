@@ -1,7 +1,10 @@
 from enum import Enum
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import SQLModel, Field, Relationship
+
+def utc_now():
+    return datetime.now(timezone.utc)
 
 class UserRole(str, Enum):
     PATIENT = "patient"
@@ -36,7 +39,7 @@ class DietaryTargets(SQLModel, table=True):
     carbs_g: Optional[float] = Field(default=250.0, description="Daily carbohydrate limit in g")
     calories_kcal: Optional[float] = Field(default=2000.0, description="Daily calorie limit")
     potassium_mg: Optional[float] = Field(default=None, description="Daily potassium limit in mg")
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=utc_now)
 
 class FoodLogs(SQLModel, table=True):
     __tablename__ = "food_logs"
@@ -52,7 +55,7 @@ class FoodLogs(SQLModel, table=True):
     potassium_mg: float = Field(default=0.0)
     protein_g: float = Field(default=0.0)
     fat_g: float = Field(default=0.0)
-    logged_at: datetime = Field(default_factory=datetime.utcnow)
+    logged_at: datetime = Field(default_factory=utc_now)
 
 class ClinicalAlerts(SQLModel, table=True):
     __tablename__ = "clinical_alerts"
@@ -62,7 +65,7 @@ class ClinicalAlerts(SQLModel, table=True):
     alert_type: str = Field(nullable=False) # e.g., 'EXCEEDED_SODIUM', 'INACTIVITY'
     message: str = Field(nullable=False)
     is_resolved: bool = Field(default=False)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utc_now)
 
 # JWT Auth Schemas
 class TokenResponse(SQLModel):

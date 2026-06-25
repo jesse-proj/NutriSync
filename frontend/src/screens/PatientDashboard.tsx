@@ -64,7 +64,8 @@ const getMealImage = (description: string) => {
 
 const formatLogTime = (dateString: string) => {
   try {
-    const date = new Date(dateString)
+    const dStr = dateString.endsWith('Z') ? dateString : dateString + 'Z'
+    const date = new Date(dStr)
     return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
   } catch {
     return 'Just now'
@@ -73,7 +74,8 @@ const formatLogTime = (dateString: string) => {
 
 const getMealPeriod = (dateString: string) => {
   try {
-    const date = new Date(dateString)
+    const dStr = dateString.endsWith('Z') ? dateString : dateString + 'Z'
+    const date = new Date(dStr)
     const hours = date.getHours()
     if (hours < 11) return 'Breakfast'
     if (hours < 16) return 'Lunch'
