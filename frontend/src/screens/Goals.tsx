@@ -75,21 +75,7 @@ const Goals = () => {
                 Track and adjust your clinical objectives
               </p>
             </div>
-            <Button
-              onClick={() => {
-                const newWeight = prompt(
-                  "Enter new weight (kg:",
-                  String(weight ?? ""),
-                );
-                if (newWeight && !isNaN(Number(newWeight))) {
-                  setWeight(Number(newWeight));
-                }
-              }}
-              className="flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-all cursor-pointer"
-            >
-              <Edit className="h-4 w-4" />
-              Update Goal
-            </Button>
+
           </div>
 
           {/* Three Column Dashboard Layout */}
