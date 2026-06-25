@@ -348,6 +348,8 @@ const PatientDashboard = () => {
       setShowFoodConfirmation(false);
       setScannedFoodData(null);
       await fetchDashboardData();
+      // ponytail: notify Goals page that a meal was logged
+      window.dispatchEvent(new CustomEvent("nutrisync:meal-logged"));
     } catch (e: any) {
       console.error("Error logging food:", e);
       alert(e.message || "Error saving food log");

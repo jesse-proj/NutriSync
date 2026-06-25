@@ -26,44 +26,60 @@ const Goals = () => {
   const [fiberChecked, setFiberChecked] = useState(false);
   const [fluidChecked, setFluidChecked] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [targetsData, logs] = await Promise.all([
-          apiFetch<{ sodium_mg: number }>("/api/patients/targets"),
-          apiFetch<
-            { calories_kcal: number; sodium_mg: number; logged_at: string }[]
-          >("/api/patients/logs?limit=30"),
-        ]);
-        if (targetsData?.sodium_mg != null) {
-          setSodiumTarget(targetsData.sodium_mg);
-        }
-        if (logs && logs.length > 0) {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const todaySodium = logs
-            .filter((l) => new Date(l.logged_at) >= today)
-            .reduce((sum, log) => sum + (log.sodium_mg || 0), 0);
-          setSodiumConsumed(Math.round(todaySodium));
-          const totalCalories = logs.reduce(
-            (sum, log) => sum + (log.calories_kcal || 0),
-            0,
-          );
-          setWalkingCompleted(Math.round((totalCalories / 50) * 10) / 10);
-        }
-      } catch (e) {
-        console.error("Error fetching goals data:", e);
-      } finally {
-        setLoading(false);
+  // ponytail: refetch when PatientDashboard logs a meal via localStorage event
+  const fetchData = async () => {
+    try {
+      const [targetsData, logs] = await Promise.all([
+        apiFetch<{ sodium_mg: number }>("/api/patients/targets"),
+        apiFetch<
+          { calories_kcal: number; sodium_mg: number; logged_at: string }[]
+        >("/api/patients/logs?today=true"),
+      ]);
+      if (targetsData?.sodium_mg != null) {
+        setSodiumTarget(targetsData.sodium_mg);
       }
-    };
+      if (logs && logs.length > 0) {
+        // ponytail: backend already filters to today only via ?today=true
+        const todaySodium = logs.reduce(
+          (sum, log) => sum + (log.sodium_mg || 0),
+          0,
+        );
+        setSodiumConsumed(Math.round(todaySodium));
+        const totalCalories = logs.reduce(
+          (sum, log) => sum + (log.calories_kcal || 0),
+          0,
+        );
+        setWalkingCompleted(Math.round((totalCalories / 50) * 10) / 10);
+      }
+    } catch (e) {
+      console.error("Error fetching goals data:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const onMealLogged = () => fetchData();
+    window.addEventListener("nutrisync:meal-logged", onMealLogged);
+    return () =>
+      window.removeEventListener("nutrisync:meal-logged", onMealLogged);
+  }, [fetchData]);
+
   const sodiumPct = Math.min(
-    100,
+    150,
     Math.round((sodiumConsumed / sodiumTarget) * 100),
   );
+  // ponytail: interpolate from teal (#00B4AD) at 0% → amber (#F59E0B) at 60% → red (#EF4444) at 100%
+  const sodiumColor =
+    sodiumPct <= 60 ? "#00B4AD" : sodiumPct <= 80 ? "#F59E0B" : "#EF4444";
+  const sodiumGlow =
+    sodiumPct > 60
+      ? `0 0 ${Math.min(sodiumPct / 2, 20)}px ${sodiumColor}66`
+      : "none";
   const walkingPct = Math.min(
     100,
     Math.round((walkingCompleted / walkingTarget) * 100),
@@ -86,7 +102,6 @@ const Goals = () => {
                 Track and adjust your clinical objectives
               </p>
             </div>
-
           </div>
 
           {/* Three Column Dashboard Layout */}
@@ -143,9 +158,18 @@ const Goals = () => {
                   <div className="p-3 bg-surface-container-highest rounded-xl text-primary font-bold text-xs uppercase">
                     Sodium
                   </div>
-                  <span className="text-secondary font-semibold text-sm flex items-center gap-1">
+                  <span
+                    className="font-semibold text-sm flex items-center gap-1"
+                    style={{ color: sodiumColor }}
+                  >
                     <CheckCircle className="h-4 w-4" />
-                    {sodiumPct <= 100 ? "Under Limit" : "Exceeded"}
+                    {sodiumPct <= 60
+                      ? "On Track"
+                      : sodiumPct <= 80
+                        ? "Caution"
+                        : sodiumPct <= 100
+                          ? "Warning"
+                          : "Exceeded"}
                   </span>
                 </div>
                 <h3 className="text-xl font-bold text-on-surface">
@@ -163,10 +187,14 @@ const Goals = () => {
                       {sodiumPct}%
                     </span>
                   </div>
-                  <div className="w-full h-3 bg-surface-container rounded-full overflow-hidden">
+                  <div className="w-full h-4 bg-surface-container rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-secondary rounded-full transition-all duration-500"
-                      style={{ width: `${sodiumPct}%` }}
+                      className="h-full rounded-full transition-all duration-700 ease-out"
+                      style={{
+                        width: `${Math.min(sodiumPct, 100)}%`,
+                        backgroundColor: sodiumColor,
+                        boxShadow: sodiumGlow,
+                      }}
                     ></div>
                   </div>
                 </div>

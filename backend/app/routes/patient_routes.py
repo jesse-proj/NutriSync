@@ -69,6 +69,7 @@ def get_patient_targets(
 def get_patient_logs(
     request: Request,
     limit: int = 50,
+    today: bool = False,
     current_user: User = Depends(get_current_patient),
     session: Session = Depends(get_session),
 ):
@@ -77,9 +78,24 @@ def get_patient_logs(
         select(FoodLogs)
         .where(FoodLogs.patient_id == current_user.id)
         .order_by(FoodLogs.logged_at.desc())
-        .limit(limit)
     )
+    if today:
+        from datetime import datetime as _dt
+
+        # ponytail: use X-Timezone-Offset header (minutes) to compute patient's local midnight in UTC
+        offset_min = int(request.headers.get("X-Timezone-Offset", "0"))
+        now_utc = _dt.now(timezone.utc)
+        now_local = now_utc - timedelta(minutes=offset_min)
+        today_start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start_utc = today_start_local + timedelta(minutes=offset_min)
+        statement = statement.where(FoodLogs.logged_at >= today_start_utc)
+    else:
+        statement = statement.limit(limit)
     logs = session.exec(statement).all()
+    # ponytail: ensure logged_at is UTC-aware so frontend date filtering works
+    for log in logs:
+        if log.logged_at and log.logged_at.tzinfo is None:
+            log.logged_at = log.logged_at.replace(tzinfo=timezone.utc)
     return logs
 
 
