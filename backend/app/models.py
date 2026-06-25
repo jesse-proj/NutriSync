@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from enum import Enum
 from typing import List, Optional
 
@@ -48,6 +48,18 @@ class User(UserBase, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     hashed_password: str = Field(nullable=False)
+    # Clinician credential fields
+    profession: Optional[str] = Field(
+        default=None, description="e.g. Cardiologist, Nurse, Dietitian"
+    )
+    prc_number: Optional[str] = Field(default=None, description="PRC license number")
+    date_of_birth: Optional[date] = Field(default=None)
+    prc_id_image_url: Optional[str] = Field(
+        default=None, description="Path to uploaded PRC ID photo"
+    )
+    credentials_verified: bool = Field(
+        default=False, description="Auto-verified for prototype"
+    )
 
 
 class DietaryTargets(SQLModel, table=True):

@@ -1,98 +1,143 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { User, Mail, Lock, ShieldCheck, ArrowRight } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
-import logoBrand from '../assets/nutrisync.png'
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  User,
+  Mail,
+  Lock,
+  ShieldCheck,
+  ArrowRight,
+  Briefcase,
+  Calendar,
+  CreditCard,
+  Upload,
+} from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import logoBrand from "../assets/nutrisync.png";
 
 const RegisterPage: React.FC = () => {
-  const { register } = useAuth()
-  const navigate = useNavigate()
+  const { register } = useAuth();
+  const navigate = useNavigate();
 
-  const [role, setRole] = useState<'patient' | 'clinician'>('patient')
-  const [fullName, setFullName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [consent, setConsent] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [role, setRole] = useState<"patient" | "clinician">("patient");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [consent, setConsent] = useState(false);
+  // Clinician credential fields
+  const [profession, setProfession] = useState("");
+  const [prcNumber, setPrcNumber] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [prcIdImage, setPrcIdImage] = useState<File | null>(null);
+  const [prcIdPreview, setPrcIdPreview] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
+    e.preventDefault();
+    setError(null);
 
     if (!fullName || !email || !password || !confirmPassword) {
-      setError('Please fill in all fields.')
-      return
+      setError("Please fill in all fields.");
+      return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.')
-      return
+      setError("Passwords do not match.");
+      return;
     }
 
-    if (role === 'patient' && !consent) {
-      setError('Explicit consent to process health information is required for patients under the Philippine Data Privacy Act of 2012.')
-      return
+    if (role === "patient" && !consent) {
+      setError(
+        "Explicit consent to process health information is required for patients under the Philippine Data Privacy Act of 2012.",
+      );
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
-      await register({
-        email,
-        full_name: fullName,
-        role,
-        consent_given: role === 'patient' ? consent : false,
-        password
-      })
-      // Redirect to login with success message
-      navigate('/login', {
-        state: { success: 'Account created successfully! Please log in.' }
-      })
+      if (role === "clinician") {
+        const formData = new FormData();
+        formData.append("full_name", fullName);
+        formData.append("email", email);
+        formData.append("password", password);
+        formData.append("role", role);
+        formData.append("consent_given", String(consent));
+        formData.append("profession", profession);
+        formData.append("prc_number", prcNumber);
+        formData.append("date_of_birth", dateOfBirth);
+        if (prcIdImage) formData.append("prc_id_image", prcIdImage);
+        await register(formData);
+      } else {
+        await register({
+          email,
+          full_name: fullName,
+          role,
+          consent_given: consent,
+          password,
+        });
+      }
+      navigate("/login", {
+        state: { success: "Account created successfully! Please log in." },
+      });
     } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.')
+      setError(err.message || "Registration failed. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <main className="flex h-screen w-full overflow-hidden items-center justify-center bg-radial from-[#e8eeff] to-[#f9f9ff]">
-      <div className="w-full max-w-[480px] flex flex-col items-center px-4">
+    <main className="flex min-h-screen w-full items-center justify-center bg-radial from-[#e8eeff] to-[#f9f9ff] py-8 px-4">
+      <div className="w-full max-w-[480px] flex flex-col items-center">
         {/* Logo Section */}
-        <img alt="NutriSync Logo" className="h-34 w-34 object-contain mb-2" draggable="false" src={logoBrand} />
+        <img
+          alt="NutriSync Logo"
+          className="h-28 w-28 object-contain mb-3"
+          draggable={false}
+          src={logoBrand}
+        />
 
         {/* Registration Card */}
-        <section className="bg-white/90 backdrop-blur-md border border-white/50 shadow-lg w-full rounded-xl px-6 py-5 flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+        <section className="bg-white/90 backdrop-blur-md border border-white/50 shadow-lg w-full rounded-xl px-6 py-5 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-8 duration-1000">
           {/* Header Text */}
           <div className="text-center space-y-0.5">
-            <h1 className="text-headline-sm font-headline-sm text-on-surface">Create your Account</h1>
-            <p className="text-body-sm font-body-sm text-on-surface-variant">Start your journey toward better nutritional recovery</p>
+            <h1 className="text-headline-sm font-headline-sm text-on-surface">
+              Create your Account
+            </h1>
+            <p className="text-body-sm font-body-sm text-on-surface-variant">
+              Start your journey toward better nutritional recovery
+            </p>
           </div>
 
           {/* Role Selection Segmented Control */}
-          <div className="bg-surface-container p-1 rounded-lg flex relative" id="role-selector">
+          <div
+            className="bg-surface-container p-1 rounded-lg flex relative"
+            id="role-selector"
+          >
             <button
-              className={`flex-1 py-1.5 text-label-sm font-label-sm rounded-md z-10 transition-all cursor-pointer ${role === 'patient'
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-on-surface-variant hover:text-on-surface'
-                }`}
+              className={`flex-1 py-1.5 text-label-sm font-label-sm rounded-md z-10 transition-all cursor-pointer ${
+                role === "patient"
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
               onClick={() => {
-                setRole('patient')
-                setError(null)
+                setRole("patient");
+                setError(null);
               }}
               type="button"
             >
               Patient
             </button>
             <button
-              className={`flex-1 py-1.5 text-label-sm font-label-sm rounded-md z-10 transition-all cursor-pointer ${role === 'clinician'
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-on-surface-variant hover:text-on-surface'
-                }`}
+              className={`flex-1 py-1.5 text-label-sm font-label-sm rounded-md z-10 transition-all cursor-pointer ${
+                role === "clinician"
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
               onClick={() => {
-                setRole('clinician')
-                setError(null)
+                setRole("clinician");
+                setError(null);
               }}
               type="button"
             >
@@ -101,16 +146,22 @@ const RegisterPage: React.FC = () => {
           </div>
 
           {error && (
-            <div className="w-full p-3 text-xs text-red-800 bg-red-50 rounded-lg border border-red-200" role="alert">
+            <div
+              className="w-full p-3 text-xs text-red-800 bg-red-50 rounded-lg border border-red-200"
+              role="alert"
+            >
               {error}
             </div>
           )}
 
           {/* Registration Form */}
-          <form className="flex flex-col gap-3" onSubmit={handleRegister}>
+          <form className="flex flex-col gap-2.5" onSubmit={handleRegister}>
             {/* Full Name */}
             <div className="flex flex-col gap-0.5">
-              <label className="text-label-sm font-label-sm text-on-surface-variant ml-1" htmlFor="fullName">
+              <label
+                className="text-label-sm font-label-sm text-on-surface-variant ml-1"
+                htmlFor="fullName"
+              >
                 Full Name
               </label>
               <div className="relative">
@@ -131,7 +182,10 @@ const RegisterPage: React.FC = () => {
 
             {/* Email Address */}
             <div className="flex flex-col gap-0.5">
-              <label className="text-label-sm font-label-sm text-on-surface-variant ml-1" htmlFor="email">
+              <label
+                className="text-label-sm font-label-sm text-on-surface-variant ml-1"
+                htmlFor="email"
+              >
                 Email Address
               </label>
               <div className="relative">
@@ -153,7 +207,10 @@ const RegisterPage: React.FC = () => {
             {/* Password Row */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-0.5">
-                <label className="text-label-sm font-label-sm text-on-surface-variant ml-1" htmlFor="password">
+                <label
+                  className="text-label-sm font-label-sm text-on-surface-variant ml-1"
+                  htmlFor="password"
+                >
                   Password
                 </label>
                 <div className="relative">
@@ -172,7 +229,10 @@ const RegisterPage: React.FC = () => {
                 </div>
               </div>
               <div className="flex flex-col gap-0.5">
-                <label className="text-label-sm font-label-sm text-on-surface-variant ml-1" htmlFor="confirmPassword">
+                <label
+                  className="text-label-sm font-label-sm text-on-surface-variant ml-1"
+                  htmlFor="confirmPassword"
+                >
                   Confirm Password
                 </label>
                 <div className="relative">
@@ -192,8 +252,121 @@ const RegisterPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Clinician Credential Fields */}
+            {role === "clinician" && (
+              <>
+                <div className="flex flex-col gap-0.5">
+                  <label
+                    className="text-label-sm font-label-sm text-on-surface-variant ml-1"
+                    htmlFor="profession"
+                  >
+                    Profession
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
+                      <Briefcase className="h-4 w-4" />
+                    </span>
+                    <input
+                      className="w-full pl-9 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50"
+                      id="profession"
+                      placeholder="e.g. Cardiologist, Nurse, Dietitian"
+                      type="text"
+                      value={profession}
+                      onChange={(e) => setProfession(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <label
+                    className="text-label-sm font-label-sm text-on-surface-variant ml-1"
+                    htmlFor="prcNumber"
+                  >
+                    PRC License Number
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
+                      <CreditCard className="h-4 w-4" />
+                    </span>
+                    <input
+                      className="w-full pl-9 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50"
+                      id="prcNumber"
+                      placeholder="e.g. 1234567"
+                      type="text"
+                      value={prcNumber}
+                      onChange={(e) => setPrcNumber(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <label
+                    className="text-label-sm font-label-sm text-on-surface-variant ml-1"
+                    htmlFor="dateOfBirth"
+                  >
+                    Date of Birth
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
+                      <Calendar className="h-4 w-4" />
+                    </span>
+                    <input
+                      className="w-full pl-9 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50"
+                      id="dateOfBirth"
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <label
+                    className="text-label-sm font-label-sm text-on-surface-variant ml-1"
+                    htmlFor="prcIdImage"
+                  >
+                    PRC ID Photo
+                  </label>
+                  <div className="relative">
+                    <input
+                      className="hidden"
+                      id="prcIdImage"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setPrcIdImage(file);
+                        if (file) setPrcIdPreview(URL.createObjectURL(file));
+                        else setPrcIdPreview(null);
+                      }}
+                    />
+                    <label
+                      htmlFor="prcIdImage"
+                      className="flex items-center gap-3 w-full px-4 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm cursor-pointer hover:border-primary transition-colors"
+                    >
+                      <Upload className="h-4 w-4 text-outline" />
+                      <span
+                        className={
+                          prcIdImage ? "text-on-surface" : "text-outline/50"
+                        }
+                      >
+                        {prcIdImage ? prcIdImage.name : "Upload PRC ID photo"}
+                      </span>
+                    </label>
+                  </div>
+                  {prcIdPreview && (
+                    <img
+                      src={prcIdPreview}
+                      alt="PRC ID preview"
+                      className="mt-2 w-full h-32 object-cover rounded-lg border border-outline-variant"
+                    />
+                  )}
+                </div>
+              </>
+            )}
+
             {/* Privacy Compliance (Only visible for Patient role) */}
-            {role === 'patient' && (
+            {role === "patient" && (
               <div className="flex items-start gap-2">
                 <div className="flex items-center h-5 mt-0.5">
                   <input
@@ -204,8 +377,12 @@ const RegisterPage: React.FC = () => {
                     onChange={(e) => setConsent(e.target.checked)}
                   />
                 </div>
-                <label className="text-xs text-on-surface-variant leading-tight cursor-pointer select-none" htmlFor="privacy">
-                  I agree to the Data Privacy Terms and understand that my information is handled in compliance with DPA 2012 guidelines
+                <label
+                  className="text-xs text-on-surface-variant leading-tight cursor-pointer select-none"
+                  htmlFor="privacy"
+                >
+                  I agree to the Data Privacy Terms and understand that my
+                  information is handled in compliance with DPA 2012 guidelines
                 </label>
               </div>
             )}
@@ -217,9 +394,11 @@ const RegisterPage: React.FC = () => {
               disabled={loading}
             >
               <span className="text-label-md font-label-md text-sm">
-                {loading ? 'Registering...' : 'Register'}
+                {loading ? "Registering..." : "Register"}
               </span>
-              {!loading && <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />}
+              {!loading && (
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              )}
             </button>
           </form>
 
@@ -227,7 +406,10 @@ const RegisterPage: React.FC = () => {
           <div className="text-center">
             <p className="text-xs text-on-surface-variant">
               Already have an account?
-              <Link className="text-primary font-bold hover:underline ml-1" to="/login">
+              <Link
+                className="text-primary font-bold hover:underline ml-1"
+                to="/login"
+              >
                 Log in
               </Link>
             </p>
@@ -235,8 +417,7 @@ const RegisterPage: React.FC = () => {
         </section>
       </div>
     </main>
-  )
-}
+  );
+};
 
-export default RegisterPage
-
+export default RegisterPage;

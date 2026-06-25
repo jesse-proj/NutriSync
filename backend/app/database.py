@@ -35,6 +35,19 @@ def _migrate_db() -> None:
                     conn.execute(
                         text("ALTER TABLE dietary_targets ADD COLUMN fat_g FLOAT")
                     )
+        if table_name == "users":
+            for col, dtype in [
+                ("profession", "TEXT"),
+                ("prc_number", "TEXT"),
+                ("date_of_birth", "DATE"),
+                ("prc_id_image_url", "TEXT"),
+                ("credentials_verified", "BOOLEAN DEFAULT 0"),
+            ]:
+                if col not in cols:
+                    with engine.begin() as conn:
+                        conn.execute(
+                            text(f"ALTER TABLE users ADD COLUMN {col} {dtype}")
+                        )
 
 
 def create_db_and_tables() -> None:

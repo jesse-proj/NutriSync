@@ -1,6 +1,9 @@
-from typing import Union
+import os
+import uuid
+from datetime import date
+from typing import Optional, Union
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
 from sqlmodel import Session, select
@@ -58,16 +61,27 @@ def _build_token_response(user: User) -> TokenResponse:
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user",
 )
-def register_user(user_data: UserCreate, session: Session = Depends(get_session)):
+async def register_user(
+    full_name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    role: str = Form(...),
+    consent_given: bool = Form(False),
+    profession: Optional[str] = Form(None),
+    prc_number: Optional[str] = Form(None),
+    date_of_birth: Optional[date] = Form(None),
+    prc_id_image: Optional[UploadFile] = File(None),
+    session: Session = Depends(get_session),
+):
     # 1. Philippine Data Privacy Act Compliance: Patient consent check
-    if user_data.role == UserRole.PATIENT and not user_data.consent_given:
+    if role == UserRole.PATIENT and not consent_given:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Explicit consent to process health information is required for patients under DPA 2012.",
         )
 
     # 2. Check if user already exists
-    statement = select(User).where(User.email == user_data.email)
+    statement = select(User).where(User.email == email)
     existing_user = session.exec(statement).first()
     if existing_user:
         raise HTTPException(
@@ -75,14 +89,34 @@ def register_user(user_data: UserCreate, session: Session = Depends(get_session)
             detail="An account with this email address already exists.",
         )
 
-    # 3. Create the user
-    hashed_pwd = get_password_hash(user_data.password)
+    # 3. Handle PRC ID image upload for clinicians
+    prc_id_image_url = None
+    if role == UserRole.CLINICIAN and prc_id_image:
+        os.makedirs("uploads/prc_ids", exist_ok=True)
+        ext = (
+            prc_id_image.filename.split(".")[-1]
+            if "." in (prc_id_image.filename or "")
+            else "jpg"
+        )
+        filename = f"{uuid.uuid4().hex}.{ext}"
+        filepath = os.path.join("uploads", "prc_ids", filename)
+        with open(filepath, "wb") as f:
+            f.write(await prc_id_image.read())
+        prc_id_image_url = f"/uploads/prc_ids/{filename}"
+
+    # 4. Create the user
+    hashed_pwd = get_password_hash(password)
     new_user = User(
-        email=user_data.email,
-        full_name=user_data.full_name,
-        role=user_data.role,
-        consent_given=user_data.consent_given,
+        email=email,
+        full_name=full_name,
+        role=role,
+        consent_given=consent_given,
         hashed_password=hashed_pwd,
+        profession=profession,
+        prc_number=prc_number,
+        date_of_birth=date_of_birth,
+        prc_id_image_url=prc_id_image_url,
+        credentials_verified=True,  # ponytail: auto-verify for prototype
     )
 
     session.add(new_user)
