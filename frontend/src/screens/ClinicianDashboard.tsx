@@ -720,7 +720,7 @@ const ClinicianDashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <MetricCard
                     icon={Users}
-                    iconClass="text-secondary"
+                    iconClass="text-primary"
                     label="Total Patients"
                     value={patients.length.toString()}
                     badge="Active"

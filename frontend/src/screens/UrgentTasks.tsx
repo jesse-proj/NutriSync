@@ -405,7 +405,7 @@ export function UrgentTasks({ onSelectPatient, patients, onAlertResolved }: Urge
                             }}
                             size="sm"
                             variant="ghost"
-                            className="text-secondary hover:bg-secondary/10 font-bold rounded-lg text-xs"
+                            className="text-black hover:bg-secondary/10 font-bold rounded-lg text-xs hover:text-primary"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
                             Review Logs
