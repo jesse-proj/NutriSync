@@ -157,6 +157,8 @@ const PatientDashboard = () => {
   const [targets, setTargets] = useState<Targets>({ sodium_mg: 2000, carbs_g: 250, calories_kcal: 2000, potassium_mg: 0 })
   const [logs, setLogs] = useState<FoodLog[]>([])
   const [expandedLogId, setExpandedLogId] = useState<number | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const mealsPerPage = 4
 
   // Chat drawer and chatbot state
   const [isChatOpen, setIsChatOpen] = useState(false)
@@ -663,16 +665,16 @@ const PatientDashboard = () => {
           )}
 
           {/* Dashboard Grid */}
-          <div className="grid grid-cols-12 gap-6">
+          <div className="flex flex-col gap-6">
 
             {/* Main Content Area (Calorie ring, Sodium alerts, Macronutrients, Recent meals) */}
-            <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
+            <div className="flex flex-col gap-6">
 
               {/* Bento-style Vitals Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Calorie Tracking Ring */}
-                <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center relative overflow-hidden">
+                <div className="lg:col-span-1 bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center relative overflow-hidden h-full">
                   <div className="absolute top-4 right-4 text-outline">
                     <Utensils className="h-5 w-5" />
                   </div>
@@ -723,7 +725,7 @@ const PatientDashboard = () => {
                 </div>
 
                 {/* Sodium Intake Summary */}
-                <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col justify-between">
+                <div className="lg:col-span-2 bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col justify-between h-full">
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h3 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
@@ -759,6 +761,12 @@ const PatientDashboard = () => {
                 </div>
 
               </div>
+
+            {/* Bottom Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* Left Column (span 2) */}
+              <div className="lg:col-span-2 flex flex-col gap-6">
 
               {/* Macronutrient Progress */}
               <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30">
@@ -823,110 +831,146 @@ const PatientDashboard = () => {
                     </Button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                    {logs.map(log => (
-                      <MealCard
-                        key={log.id}
-                        log={log}
-                        isExpanded={expandedLogId === log.id}
-                        onToggle={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                      {logs.slice((currentPage - 1) * mealsPerPage, currentPage * mealsPerPage).map(log => (
+                        <MealCard
+                          key={log.id}
+                          log={log}
+                          isExpanded={expandedLogId === log.id}
+                          onToggle={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
+                        />
+                      ))}
+                    </div>
+                    {logs.length > mealsPerPage && (
+                      <div className="flex items-center justify-between mt-4 border-t border-outline-variant/30 pt-4">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                        >
+                          Previous
+                        </Button>
+                        <span className="text-sm text-on-surface-variant font-medium">
+                          Page {currentPage} of {Math.ceil(logs.length / mealsPerPage)}
+                        </span>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(logs.length / mealsPerPage)))}
+                          disabled={currentPage === Math.ceil(logs.length / mealsPerPage)}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
-
-            </div>
-
-            {/* Right Sidebar Area (Quick Actions, Reminders, Suggestions) */}
-            <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
-
-              {/* Quick Actions Card */}
-              <div className="flex flex-col gap-3">
-                <Button
-                  onClick={handleOpenScanDialog}
-                  className="bg-primary text-on-primary h-14 rounded-2xl flex items-center justify-center gap-3 font-semibold text-sm shadow-lg shadow-primary/20 hover:bg-primary-container transition-all border-none cursor-pointer"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  Log a Meal with AI
-                </Button>
-                <Button
-                  onClick={() => setIsChatOpen(true)}
-                  className="bg-secondary text-on-secondary h-14 rounded-2xl flex items-center justify-center gap-3 font-semibold text-sm shadow-lg shadow-secondary/20 hover:bg-gray-500 hover:opacity-95 transition-all border-none cursor-pointer"
-                >
-                  <MessageSquare className="h-5 w-5 " />
-                  Ask NutriGabay
-                </Button>
               </div>
 
-              {/* Clinical Reminders */}
-              <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30">
-                <div className="flex items-center gap-2 mb-6">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  <h3 className="text-lg font-bold text-on-surface">Clinical Reminders</h3>
-                </div>
-
-                <div className="space-y-6">
-
-                  {/* Losartan Medication Reminder */}
-                  <div className="flex gap-4 items-start">
-                    <div className="w-10 h-10 bg-primary-container text-on-primary-container rounded-xl flex items-center justify-center shrink-0">
-                      <Pill className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-grow">
-                      <p className="text-sm font-bold text-on-surface">Losartan (50mg)</p>
-                      <p className="text-xs text-on-surface-variant font-medium mt-0.5">Due: 8:00 PM tonight</p>
-                      <button
-                        onClick={toggleLosartan}
-                        className={`mt-3 text-xs font-semibold px-4 py-1.5 rounded-full border transition-all cursor-pointer ${losartanTaken
-                          ? 'bg-green-100 border-green-300 text-green-700 font-bold flex items-center gap-1'
-                          : 'bg-transparent border-primary text-primary hover:bg-primary-container'
-                          }`}
-                      >
-                        {losartanTaken ? (
-                          <>
-                            <CheckCircle className="h-3.5 w-3.5" />
-                            Taken
-                          </>
-                        ) : (
-                          'Mark Taken'
-                        )}
-                      </button>
-                    </div>
+              {/* Right Column (span 1) */}
+              <div className="lg:col-span-1">
+                {/* Clinical Reminders */}
+                <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 h-full">
+                  <div className="flex items-center gap-2 mb-6">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    <h3 className="text-lg font-bold text-on-surface">Clinical Reminders</h3>
                   </div>
 
-                  {/* Hydration Tracker Reminder */}
-                  <div className="flex gap-4 items-start border-t border-outline-variant/30 pt-5">
-                    <div className="w-10 h-10 bg-secondary-container text-on-secondary-container rounded-xl flex items-center justify-center shrink-0">
-                      <Droplet className="h-5 w-5" />
-                    </div>
-                    <div className="flex-grow">
-                      <p className="text-sm font-bold text-on-surface">Hydration Goal</p>
-                      <p className="text-xs text-on-surface-variant font-medium mt-0.5">
-                        Drink {Math.max(0, 5 - glassesHydrated)} more glasses today
-                      </p>
+                  <div className="space-y-6">
 
-                      {/* Interactive Glass indicators */}
-                      <div className="mt-3.5 flex gap-1.5">
-                        {[1, 2, 3, 4, 5].map(idx => (
-                          <button
-                            key={idx}
-                            onClick={() => updateWaterCount(idx)}
-                            className={`w-7 h-2 rounded-full transition-all cursor-pointer ${idx <= glassesHydrated
-                              ? 'bg-secondary'
-                              : 'bg-surface-container hover:bg-secondary/40'
-                              }`}
-                            title={`Log ${idx} glasses`}
-                          />
-                        ))}
+                    {/* Losartan Medication Reminder */}
+                    <div className="flex gap-4 items-start">
+                      <div className="w-10 h-10 bg-primary-container text-on-primary-container rounded-xl flex items-center justify-center shrink-0">
+                        <Pill className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="flex-grow">
+                        <p className="text-sm font-bold text-on-surface">Losartan (50mg)</p>
+                        <p className="text-xs text-on-surface-variant font-medium mt-0.5">Due: 8:00 PM tonight</p>
+                        <button
+                          onClick={toggleLosartan}
+                          className={`mt-3 text-xs font-semibold px-4 py-1.5 rounded-full border transition-all cursor-pointer ${losartanTaken
+                            ? 'bg-green-100 border-green-300 text-green-700 font-bold flex items-center gap-1'
+                            : 'bg-transparent border-primary text-primary hover:bg-primary-container'
+                            }`}
+                        >
+                          {losartanTaken ? (
+                            <>
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              Taken
+                            </>
+                          ) : (
+                            'Mark Taken'
+                          )}
+                        </button>
                       </div>
                     </div>
-                  </div>
 
+                    {/* Hydration Tracker Reminder */}
+                    <div className="flex gap-4 items-start border-t border-outline-variant/30 pt-5">
+                      <div className="w-10 h-10 bg-secondary-container text-on-secondary-container rounded-xl flex items-center justify-center shrink-0">
+                        <Droplet className="h-5 w-5" />
+                      </div>
+                      <div className="flex-grow">
+                        <p className="text-sm font-bold text-on-surface">Hydration Goal</p>
+                        <p className="text-xs text-on-surface-variant font-medium mt-0.5">
+                          Drink {Math.max(0, 5 - glassesHydrated)} more glasses today
+                        </p>
+
+                        {/* Interactive Glass indicators */}
+                        <div className="mt-3.5 flex gap-1.5">
+                          {[1, 2, 3, 4, 5].map(idx => (
+                            <button
+                              key={idx}
+                              onClick={() => updateWaterCount(idx)}
+                              className={`w-7 h-2 rounded-full transition-all cursor-pointer ${idx <= glassesHydrated
+                                ? 'bg-secondary'
+                                : 'bg-surface-container hover:bg-secondary/40'
+                                }`}
+                              title={`Log ${idx} glasses`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Blood Pressure Reminder */}
+                    <div className="flex gap-4 items-start border-t border-outline-variant/30 pt-5">
+                      <div className="w-10 h-10 bg-error-container text-error rounded-xl flex items-center justify-center shrink-0">
+                        <AlertTriangle className="h-5 w-5" />
+                      </div>
+                      <div className="flex-grow">
+                        <p className="text-sm font-bold text-on-surface">Log Blood Pressure</p>
+                        <p className="text-xs text-on-surface-variant font-medium mt-0.5">Due: Today before bed</p>
+                        <button
+                          className="mt-3 text-xs font-semibold px-4 py-1.5 rounded-full border transition-all cursor-pointer bg-transparent border-error text-error hover:bg-error-container"
+                        >
+                          Log Now
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Weight Reminder */}
+                    <div className="flex gap-4 items-start border-t border-outline-variant/30 pt-5">
+                      <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center shrink-0">
+                        <Info className="h-5 w-5" />
+                      </div>
+                      <div className="flex-grow">
+                        <p className="text-sm font-bold text-on-surface">Weekly Weigh-in</p>
+                        <p className="text-xs text-on-surface-variant font-medium mt-0.5">Due: Tomorrow morning</p>
+                      </div>
+                    </div>
+
+                  </div>
                 </div>
               </div>
 
             </div>
+
+            </div>
+
+
 
           </div>
 
@@ -957,7 +1001,7 @@ const PatientDashboard = () => {
         {/* AI Chatbot FAB */}
         <button
           onClick={() => setIsChatOpen(true)}
-          className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all cursor-pointer border-none bg-primary-container text-on-primary-container"
+          className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all cursor-pointer border-none bg-primary-container text-white"
           title="Chat with NutriGabay AI"
         >
           <Sparkles className="h-5 w-5" />
