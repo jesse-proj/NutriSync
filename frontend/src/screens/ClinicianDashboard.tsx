@@ -34,10 +34,7 @@ import {
   Utensils,
   BadgeCheck,
   Phone,
-  MessageSquare,
-  Camera,
   AlertCircle,
-  CheckCheck,
   Plus,
 } from 'lucide-react'
 
