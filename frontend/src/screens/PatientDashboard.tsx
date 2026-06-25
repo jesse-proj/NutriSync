@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch, API_URL } from "../api/client";
 import {
@@ -134,10 +135,24 @@ const PatientDashboard = () => {
 
   // Doctor chat hook
   const doctorChat = useDoctorChat(user?.id);
+  const location = useLocation();
 
   useEffect(() => {
     document.title = "Patient Dashboard | NutriSync";
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const chatType = params.get("chat");
+
+    if (chatType === "ai") {
+      setIsChatOpen(true);
+    }
+
+    if (chatType === "doctor" && doctorChat.doctorProfile) {
+      doctorChat.setIsChatOpen(true);
+    }
+  }, [location.search, doctorChat.doctorProfile, doctorChat.setIsChatOpen]);
 
   // File upload state
   const [isUploading, setIsUploading] = useState(false);
