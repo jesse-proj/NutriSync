@@ -47,6 +47,8 @@ interface Targets {
   carbs_g: number;
   calories_kcal: number;
   potassium_mg: number;
+  protein_g?: number;
+  fat_g?: number;
 }
 
 interface FoodLog {
@@ -77,6 +79,8 @@ const PatientDashboard = () => {
     carbs_g: 250,
     calories_kcal: 2000,
     potassium_mg: 0,
+    protein_g: 120,
+    fat_g: 70,
   });
   const [logs, setLogs] = useState<FoodLog[]>([]);
   const [expandedLogId, setExpandedLogId] = useState<number | null>(null);
@@ -128,8 +132,10 @@ const PatientDashboard = () => {
   );
   const consumedFat = logs.reduce((sum, log) => sum + (log.fat_g || 0), 0);
 
-  const targetProtein = Math.round((targets.calories_kcal * 0.2) / 4) || 120;
-  const targetFat = Math.round((targets.calories_kcal * 0.3) / 9) || 70;
+  const targetProtein =
+    targets.protein_g || Math.round((targets.calories_kcal * 0.2) / 4) || 120;
+  const targetFat =
+    targets.fat_g || Math.round((targets.calories_kcal * 0.3) / 9) || 70;
 
   const carbsPct = Math.min(
     100,
