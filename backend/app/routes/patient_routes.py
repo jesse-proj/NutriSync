@@ -5,7 +5,14 @@ from sqlmodel import Session, select
 
 from app.auth import get_current_user
 from app.database import get_session
-from app.models import ClinicalAlerts, DietaryTargets, FoodLogs, User, UserRole
+from app.models import (
+    ClinicalAlerts,
+    ClinicalReminder,
+    DietaryTargets,
+    FoodLogs,
+    User,
+    UserRole,
+)
 from app.services.ai_summary import generate_nutrition_summary
 
 router = APIRouter(prefix="/patients", tags=["Patients"])
@@ -107,3 +114,20 @@ def get_assigned_clinician(
         "full_name": clinician.full_name,
         "email": clinician.email,
     }
+
+
+@router.get("/reminders")
+def get_my_reminders(
+    current_user: User = Depends(get_current_patient),
+    session: Session = Depends(get_session),
+):
+    """Get active reminders for the current patient."""
+    statement = (
+        select(ClinicalReminder)
+        .where(
+            ClinicalReminder.patient_id == current_user.id,
+            ClinicalReminder.is_active == True,
+        )
+        .order_by(ClinicalReminder.created_at.desc())
+    )
+    return session.exec(statement).all()

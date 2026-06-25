@@ -7,8 +7,6 @@ import {
   Loader2,
   Sparkles,
   MessageSquare,
-  Pill,
-  Droplet,
   X,
   Send,
   CheckCircle,
@@ -16,7 +14,6 @@ import {
   AlertTriangle,
   Utensils,
   Info,
-  Check,
 } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
@@ -27,6 +24,23 @@ import Footer from "@/components/Footer";
 import MealCard from "../components/MealCard";
 import DashboardStats from "../components/DashboardStats";
 import { useDoctorChat } from "../hooks/useDoctorChat";
+
+interface ClinicalReminder {
+  id: number;
+  reminder_type: string;
+  title: string;
+  description: string;
+  schedule: string;
+  is_active: boolean;
+}
+
+const REMINDER_ICONS: Record<string, string> = {
+  medication: "💊",
+  hydration: "💧",
+  meal: "🍽",
+  activity: "🏃",
+  custom: "📋",
+};
 
 interface Targets {
   sodium_mg: number;
@@ -57,14 +71,17 @@ interface Message {
 const PatientDashboard = () => {
   const { user } = useAuth();
 
-
   // State for dashboard metrics
-  const [targets, setTargets] = useState<Targets>({ sodium_mg: 2000, carbs_g: 250, calories_kcal: 2000, potassium_mg: 0 })
-  const [logs, setLogs] = useState<FoodLog[]>([])
-  const [expandedLogId, setExpandedLogId] = useState<number | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const mealsPerPage = 4
-
+  const [targets, setTargets] = useState<Targets>({
+    sodium_mg: 2000,
+    carbs_g: 250,
+    calories_kcal: 2000,
+    potassium_mg: 0,
+  });
+  const [logs, setLogs] = useState<FoodLog[]>([]);
+  const [expandedLogId, setExpandedLogId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const mealsPerPage = 4;
 
   // Chatbot state
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -83,35 +100,58 @@ const PatientDashboard = () => {
   const [showScanWarningModal, setShowScanWarningModal] = useState(false);
   const [isScanWarningChecked, setIsScanWarningChecked] = useState(false);
 
-  // Clinical reminders
-  const [losartanTaken, setLosartanTaken] = useState(
-    () => localStorage.getItem("losartan_taken") === "true",
+  // Clinical reminders (from API)
+  const [reminders, setReminders] = useState<ClinicalReminder[]>([]);
+  useEffect(() => {
+    const fetchReminders = async () => {
+      try {
+        const data = await apiFetch<ClinicalReminder[]>(
+          "/api/patients/reminders",
+        );
+        if (data) setReminders(data.filter((r) => r.is_active));
+      } catch (err) {
+        console.error("Error fetching reminders:", err);
+      }
+    };
+    fetchReminders();
+  }, []);
+
+  const consumedCalories = logs.reduce(
+    (sum, log) => sum + log.calories_kcal,
+    0,
   );
-  const [glassesHydrated, setGlassesHydrated] = useState(() =>
-    Number(localStorage.getItem("glasses_hydrated") || 3),
+  const consumedSodium = logs.reduce((sum, log) => sum + log.sodium_mg, 0);
+  const consumedCarbs = logs.reduce((sum, log) => sum + log.carbs_g, 0);
+  const consumedProtein = logs.reduce(
+    (sum, log) => sum + (log.protein_g || 0),
+    0,
   );
+  const consumedFat = logs.reduce((sum, log) => sum + (log.fat_g || 0), 0);
 
-  const consumedCalories = logs.reduce((sum, log) => sum + log.calories_kcal, 0)
-  const consumedSodium = logs.reduce((sum, log) => sum + log.sodium_mg, 0)
-  const consumedCarbs = logs.reduce((sum, log) => sum + log.carbs_g, 0)
-  const consumedProtein = logs.reduce((sum, log) => sum + (log.protein_g || 0), 0)
-  const consumedFat = logs.reduce((sum, log) => sum + (log.fat_g || 0), 0)
+  const targetProtein = Math.round((targets.calories_kcal * 0.2) / 4) || 120;
+  const targetFat = Math.round((targets.calories_kcal * 0.3) / 9) || 70;
 
-  const targetProtein = Math.round((targets.calories_kcal * 0.20) / 4) || 120
-  const targetFat = Math.round((targets.calories_kcal * 0.30) / 9) || 70
+  const carbsPct = Math.min(
+    100,
+    (consumedCarbs / (targets.carbs_g || 1)) * 100,
+  );
+  const proteinPct = Math.min(
+    100,
+    (consumedProtein / (targetProtein || 1)) * 100,
+  );
+  const fatPct = Math.min(100, (consumedFat / (targetFat || 1)) * 100);
 
-  const carbsPct = Math.min(100, (consumedCarbs / (targets.carbs_g || 1)) * 100)
-  const proteinPct = Math.min(100, (consumedProtein / (targetProtein || 1)) * 100)
-  const fatPct = Math.min(100, (consumedFat / (targetFat || 1)) * 100)
+  const caloriesLeft = Math.max(0, targets.calories_kcal - consumedCalories);
+  const isCalorieSurpassed = consumedCalories > targets.calories_kcal;
 
-  const caloriesLeft = Math.max(0, targets.calories_kcal - consumedCalories)
-  const isCalorieSurpassed = consumedCalories > targets.calories_kcal
+  const calorieProgressRatio = Math.min(
+    1,
+    consumedCalories / (targets.calories_kcal || 1),
+  );
+  const strokeDashoffset = 264 - 264 * calorieProgressRatio;
 
-  const calorieProgressRatio = Math.min(1, consumedCalories / (targets.calories_kcal || 1))
-  const strokeDashoffset = 264 - (264 * calorieProgressRatio)
-
-  const isSodiumWarning = consumedSodium > targets.sodium_mg * 0.6
-  const highSodiumMeal = logs.find(log => log.sodium_mg > 400)
+  const isSodiumWarning = consumedSodium > targets.sodium_mg * 0.6;
+  const highSodiumMeal = logs.find((log) => log.sodium_mg > 400);
   const sodiumAlertMessage = highSodiumMeal
     ? `Your recent meal (${highSodiumMeal.description}) was high in sodium. Try drinking extra water this afternoon.`
     : "Your meals logged today are within healthy sodium thresholds. Excellent choice!";
@@ -223,17 +263,6 @@ const PatientDashboard = () => {
     setScannedFoodData(null);
   };
 
-  const toggleLosartan = () => {
-    const newState = !losartanTaken;
-    setLosartanTaken(newState);
-    localStorage.setItem("losartan_taken", String(newState));
-  };
-
-  const updateWaterCount = (count: number) => {
-    setGlassesHydrated(count);
-    localStorage.setItem("glasses_hydrated", String(count));
-  };
-
   const handleOpenScanDialog = () => {
     setIsScanWarningChecked(false);
     setShowScanWarningModal(true);
@@ -297,8 +326,8 @@ const PatientDashboard = () => {
                 <span className="font-bold text-on-surface">
                   mga pagtatantya lamang
                 </span>{" "}
-                — hindi ito eksakto. Palaging sundin ang payo ng iyong
-                doktor o dietitian.
+                — hindi ito eksakto. Palaging sundin ang payo ng iyong doktor o
+                dietitian.
               </p>
             </div>
             <div className="bg-surface-container rounded-2xl p-4 flex flex-col gap-3.5 border border-outline-variant/10">
@@ -442,7 +471,6 @@ const PatientDashboard = () => {
             </p>
           </div>
 
-
           {/* Notification Alert Tab */}
           {consumedSodium >= targets.sodium_mg * 0.9 && (
             <Alert variant="destructive" className="mb-8 shadow-sm">
@@ -452,10 +480,21 @@ const PatientDashboard = () => {
               </AlertTitle>
               <AlertDescription className="mt-2 text-red-900 leading-relaxed">
                 <p>
-                  Ang iyong nakonsumong sodium ngayong araw ay umabot na sa <span className="font-bold">{Math.round(consumedSodium)} mg</span>, na nasa <span className="font-bold">{Math.round((consumedSodium / targets.sodium_mg) * 100)}%</span> ng iyong daily target limit (<span className="font-bold">{targets.sodium_mg} mg</span>).
+                  Ang iyong nakonsumong sodium ngayong araw ay umabot na sa{" "}
+                  <span className="font-bold">
+                    {Math.round(consumedSodium)} mg
+                  </span>
+                  , na nasa{" "}
+                  <span className="font-bold">
+                    {Math.round((consumedSodium / targets.sodium_mg) * 100)}%
+                  </span>{" "}
+                  ng iyong daily target limit (
+                  <span className="font-bold">{targets.sodium_mg} mg</span>).
                 </p>
                 <div className="mt-3 p-3 bg-white/70 border border-red-200/40 rounded-xl text-xs font-bold text-red-950">
-                  Paalala mula sa iyong Doctor: Mangyaring iwasan muna ang pagkain ng maaalat (tulad ng toyo, patis, bagoong, de-lata, at instant noodles) sa natitirang bahagi ng araw na ito!
+                  Paalala mula sa iyong Doctor: Mangyaring iwasan muna ang
+                  pagkain ng maaalat (tulad ng toyo, patis, bagoong, de-lata, at
+                  instant noodles) sa natitirang bahagi ng araw na ito!
                 </div>
               </AlertDescription>
             </Alert>
@@ -463,13 +502,10 @@ const PatientDashboard = () => {
 
           {/* Dashboard Grid */}
           <div className="flex flex-col gap-6">
-
             {/* Main Content Area (Calorie ring, Sodium alerts, Macronutrients, Recent meals) */}
             <div className="flex flex-col gap-6">
-
               {/* Bento-style Vitals Row */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
                 {/* Calorie Tracking Ring */}
                 <div className="lg:col-span-1 bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center relative overflow-hidden h-full">
                   <div className="absolute top-4 right-4 text-outline">
@@ -492,7 +528,7 @@ const PatientDashboard = () => {
                       />
                       {/* Active Progress Ring */}
                       <circle
-                        className={`${isCalorieSurpassed ? 'text-error' : 'text-primary'} stroke-current`}
+                        className={`${isCalorieSurpassed ? "text-error" : "text-primary"} stroke-current`}
                         cx="50"
                         cy="50"
                         fill="transparent"
@@ -502,9 +538,9 @@ const PatientDashboard = () => {
                         style={{
                           strokeDasharray: 264,
                           strokeDashoffset: strokeDashoffset,
-                          transition: 'stroke-dashoffset 0.35s',
-                          transform: 'rotate(-90deg)',
-                          transformOrigin: '50% 50%',
+                          transition: "stroke-dashoffset 0.35s",
+                          transform: "rotate(-90deg)",
+                          transformOrigin: "50% 50%",
                         }}
                       />
                     </svg>
@@ -512,12 +548,16 @@ const PatientDashboard = () => {
                       <span className="text-3xl font-extrabold text-on-surface tracking-tight">
                         {Math.round(caloriesLeft).toLocaleString()}
                       </span>
-                      <span className="text-xs text-outline font-medium">kcal left</span>
+                      <span className="text-xs text-outline font-medium">
+                        kcal left
+                      </span>
                     </div>
                   </div>
 
                   <p className="mt-6 text-sm text-on-surface-variant font-medium">
-                    Goal: {targets.calories_kcal?.toLocaleString()} kcal | Consumed: {Math.round(consumedCalories).toLocaleString()} kcal
+                    Goal: {targets.calories_kcal?.toLocaleString()} kcal |
+                    Consumed: {Math.round(consumedCalories).toLocaleString()}{" "}
+                    kcal
                   </p>
                 </div>
 
@@ -528,27 +568,40 @@ const PatientDashboard = () => {
                       <h3 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
                         Sodium Intake
                       </h3>
-                      <p className={`text-2xl font-bold mt-1 ${isSodiumWarning ? 'text-error' : 'text-primary'}`}>
-                        {(consumedSodium / 1000).toFixed(2)}g{' '}
+                      <p
+                        className={`text-2xl font-bold mt-1 ${isSodiumWarning ? "text-error" : "text-primary"}`}
+                      >
+                        {(consumedSodium / 1000).toFixed(2)}g{" "}
                         <span className="text-sm font-normal text-on-surface-variant">
                           / {(targets.sodium_mg / 1000).toFixed(1)}g
                         </span>
                       </p>
                     </div>
-                    <span className={`p-2 rounded-xl flex items-center justify-center ${isSodiumWarning ? 'bg-error-container text-error' : 'bg-surface-container text-primary'}`}>
-                      {isSodiumWarning ? <AlertTriangle className="h-5 w-5 animate-pulse" /> : <CheckCircle className="h-5 w-5" />}
+                    <span
+                      className={`p-2 rounded-xl flex items-center justify-center ${isSodiumWarning ? "bg-error-container text-error" : "bg-surface-container text-primary"}`}
+                    >
+                      {isSodiumWarning ? (
+                        <AlertTriangle className="h-5 w-5 animate-pulse" />
+                      ) : (
+                        <CheckCircle className="h-5 w-5" />
+                      )}
                     </span>
                   </div>
 
                   {/* Warning Alert Box */}
-                  <div className={`p-7 rounded-xl flex gap-3 items-start border mb-7 ${isSodiumWarning
-                    ? 'bg-error-container text-on-error-container border-error/10'
-                    : 'bg-surface-container text-on-surface border-outline-variant/20'
-                    }`}>
+                  <div
+                    className={`p-7 rounded-xl flex gap-3 items-start border mb-7 ${
+                      isSodiumWarning
+                        ? "bg-error-container text-on-error-container border-error/10"
+                        : "bg-surface-container text-on-surface border-outline-variant/20"
+                    }`}
+                  >
                     <Info className="h-5 w-5 shrink-0 mt-0.5" />
                     <div className="flex flex-col">
                       <p className="text-xs font-semibold">
-                        {isSodiumWarning ? 'Sodium Intake Alert' : 'Sodium Compliance'}
+                        {isSodiumWarning
+                          ? "Sodium Intake Alert"
+                          : "Sodium Compliance"}
                       </p>
                       <p className="text-xs opacity-90 mt-0.5 leading-relaxed">
                         {sodiumAlertMessage}
@@ -556,230 +609,218 @@ const PatientDashboard = () => {
                     </div>
                   </div>
                 </div>
-
               </div>
 
-            {/* Bottom Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Left Column (span 2) */}
-              <div className="lg:col-span-2 flex flex-col gap-6">
-
-              {/* Macronutrient Progress */}
-              <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30">
-                <h3 className="text-lg font-bold text-on-surface mb-6">
-                  Macronutrient Progress
-                </h3>
-                <div className="space-y-5">
-
-                  {/* Protein progress */}
-                  <div>
-                    <div className="flex justify-between mb-1.5 text-sm">
-                      <span className="font-semibold text-on-surface">Protein</span>
-                      <span className="text-on-surface-variant">{Math.round(consumedProtein)}g / {targetProtein}g</span>
-                    </div>
-                    <div className="w-full bg-surface-container h-3 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${proteinPct}%`, backgroundColor: '#00B4AD' }}></div>
-                    </div>
-                  </div>
-
-                  {/* Carbohydrates progress */}
-                  <div>
-                    <div className="flex justify-between mb-1.5 text-sm">
-                      <span className="font-semibold text-on-surface">Carbohydrates</span>
-                      <span className="text-on-surface-variant">{Math.round(consumedCarbs)}g / {targets.carbs_g}g</span>
-                    </div>
-                    <div className="w-full bg-surface-container h-3 rounded-full overflow-hidden">
-                      <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${carbsPct}%` }}></div>
-                    </div>
-                  </div>
-
-                  {/* Fats progress */}
-                  <div>
-                    <div className="flex justify-between mb-1.5 text-sm">
-                      <span className="font-semibold text-on-surface">Fats</span>
-                      <span className="text-on-surface-variant">{Math.round(consumedFat)}g / {targetFat}g</span>
-                    </div>
-                    <div className="w-full bg-surface-container h-3 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${fatPct}%`, backgroundColor: '#ED8659' }}></div>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-
-              {/* Recent Meals */}
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold text-on-surface">
-                    Recent Meals
-                  </h3>
-                  <span className="text-xs text-primary font-semibold">
-                    Today
-                  </span>
-                </div>
-                {logs.length === 0 ? (
-                  <div className="p-8 bg-surface-container-low border border-dashed border-outline-variant rounded-2xl text-center text-on-surface-variant text-sm flex flex-col items-center justify-center gap-3">
-                    <span className="h-8 w-8 text-outline">🍽</span>
-                    <div>
-                      <p className="font-semibold">No meals logged today</p>
-                      <p className="text-xs mt-0.5">
-                        Log your meals by uploading a photo or talking to
-                        NutriGabay AI.
-                      </p>
-                    </div>
-                    <Button
-                      onClick={handleOpenScanDialog}
-                      className="mt-2 rounded-full flex gap-2"
-                    >
-                      <Camera className="h-4 w-4" />
-                      Log First Meal
-                    </Button>
-                  </div>
-                ) : (
-
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                      {logs.slice((currentPage - 1) * mealsPerPage, currentPage * mealsPerPage).map(log => (
-                        <MealCard
-                          key={log.id}
-                          log={log}
-                          isExpanded={expandedLogId === log.id}
-                          onToggle={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
-                        />
-                      ))}
-                    </div>
-                    {logs.length > mealsPerPage && (
-                      <div className="flex items-center justify-between mt-4 border-t border-outline-variant/30 pt-4">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                          disabled={currentPage === 1}
-                        >
-                          Previous
-                        </Button>
-                        <span className="text-sm text-on-surface-variant font-medium">
-                          Page {currentPage} of {Math.ceil(logs.length / mealsPerPage)}
-                        </span>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(logs.length / mealsPerPage)))}
-                          disabled={currentPage === Math.ceil(logs.length / mealsPerPage)}
-                        >
-                          Next
-                        </Button>
+              {/* Bottom Row */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Column (span 2) */}
+                <div className="lg:col-span-2 flex flex-col gap-6">
+                  {/* Macronutrient Progress */}
+                  <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30">
+                    <h3 className="text-lg font-bold text-on-surface mb-6">
+                      Macronutrient Progress
+                    </h3>
+                    <div className="space-y-5">
+                      {/* Protein progress */}
+                      <div>
+                        <div className="flex justify-between mb-1.5 text-sm">
+                          <span className="font-semibold text-on-surface">
+                            Protein
+                          </span>
+                          <span className="text-on-surface-variant">
+                            {Math.round(consumedProtein)}g / {targetProtein}g
+                          </span>
+                        </div>
+                        <div className="w-full bg-surface-container h-3 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${proteinPct}%`,
+                              backgroundColor: "#00B4AD",
+                            }}
+                          ></div>
+                        </div>
                       </div>
-                    )}
-                  </>
-                )}
-              </div>
-              </div>
 
-              {/* Right Column (span 1) */}
-              <div className="lg:col-span-1">
-                {/* Clinical Reminders */}
-                <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 h-full">
-                  <div className="flex items-center gap-2 mb-6">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    <h3 className="text-lg font-bold text-on-surface">Clinical Reminders</h3>
-                  </div>
-
-                  <div className="space-y-6">
-
-                    {/* Losartan Medication Reminder */}
-                    <div className="flex gap-4 items-start">
-                      <div className="w-10 h-10 bg-primary-container text-on-primary-container rounded-xl flex items-center justify-center shrink-0">
-                        <Pill className="h-5 w-5 text-white" />
+                      {/* Carbohydrates progress */}
+                      <div>
+                        <div className="flex justify-between mb-1.5 text-sm">
+                          <span className="font-semibold text-on-surface">
+                            Carbohydrates
+                          </span>
+                          <span className="text-on-surface-variant">
+                            {Math.round(consumedCarbs)}g / {targets.carbs_g}g
+                          </span>
+                        </div>
+                        <div className="w-full bg-surface-container h-3 rounded-full overflow-hidden">
+                          <div
+                            className="bg-primary h-full rounded-full transition-all duration-500"
+                            style={{ width: `${carbsPct}%` }}
+                          ></div>
+                        </div>
                       </div>
-                      <div className="flex-grow">
-                        <p className="text-sm font-bold text-on-surface">Losartan (50mg)</p>
-                        <p className="text-xs text-on-surface-variant font-medium mt-0.5">Due: 8:00 PM tonight</p>
-                        <button
-                          onClick={toggleLosartan}
-                          className={`mt-3 text-xs font-semibold px-4 py-1.5 rounded-full border transition-all cursor-pointer ${losartanTaken
-                            ? 'bg-green-100 border-green-300 text-green-700 font-bold flex items-center gap-1'
-                            : 'bg-transparent border-primary text-primary hover:bg-primary-container'
-                            }`}
-                        >
-                          {losartanTaken ? (
-                            <>
-                              <CheckCircle className="h-3.5 w-3.5" />
-                              Taken
-                            </>
-                          ) : (
-                            'Mark Taken'
-                          )}
-                        </button>
-                      </div>
-                    </div>
 
-                    {/* Hydration Tracker Reminder */}
-                    <div className="flex gap-4 items-start border-t border-outline-variant/30 pt-5">
-                      <div className="w-10 h-10 bg-secondary-container text-on-secondary-container rounded-xl flex items-center justify-center shrink-0">
-                        <Droplet className="h-5 w-5" />
-                      </div>
-                      <div className="flex-grow">
-                        <p className="text-sm font-bold text-on-surface">Hydration Goal</p>
-                        <p className="text-xs text-on-surface-variant font-medium mt-0.5">
-                          Drink {Math.max(0, 5 - glassesHydrated)} more glasses today
-                        </p>
-
-                        {/* Interactive Glass indicators */}
-                        <div className="mt-3.5 flex gap-1.5">
-                          {[1, 2, 3, 4, 5].map(idx => (
-                            <button
-                              key={idx}
-                              onClick={() => updateWaterCount(idx)}
-                              className={`w-7 h-2 rounded-full transition-all cursor-pointer ${idx <= glassesHydrated
-                                ? 'bg-secondary'
-                                : 'bg-surface-container hover:bg-secondary/40'
-                                }`}
-                              title={`Log ${idx} glasses`}
-                            />
-                          ))}
+                      {/* Fats progress */}
+                      <div>
+                        <div className="flex justify-between mb-1.5 text-sm">
+                          <span className="font-semibold text-on-surface">
+                            Fats
+                          </span>
+                          <span className="text-on-surface-variant">
+                            {Math.round(consumedFat)}g / {targetFat}g
+                          </span>
+                        </div>
+                        <div className="w-full bg-surface-container h-3 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${fatPct}%`,
+                              backgroundColor: "#ED8659",
+                            }}
+                          ></div>
                         </div>
                       </div>
                     </div>
-                    {/* Blood Pressure Reminder */}
-                    <div className="flex gap-4 items-start border-t border-outline-variant/30 pt-5">
-                      <div className="w-10 h-10 bg-error-container text-error rounded-xl flex items-center justify-center shrink-0">
-                        <AlertTriangle className="h-5 w-5" />
-                      </div>
-                      <div className="flex-grow">
-                        <p className="text-sm font-bold text-on-surface">Log Blood Pressure</p>
-                        <p className="text-xs text-on-surface-variant font-medium mt-0.5">Due: Today before bed</p>
-                        <button
-                          className="mt-3 text-xs font-semibold px-4 py-1.5 rounded-full border transition-all cursor-pointer bg-transparent border-error text-error hover:bg-error-container"
+                  </div>
+
+                  {/* Recent Meals */}
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-bold text-on-surface">
+                        Recent Meals
+                      </h3>
+                      <span className="text-xs text-primary font-semibold">
+                        Today
+                      </span>
+                    </div>
+                    {logs.length === 0 ? (
+                      <div className="p-8 bg-surface-container-low border border-dashed border-outline-variant rounded-2xl text-center text-on-surface-variant text-sm flex flex-col items-center justify-center gap-3">
+                        <span className="h-8 w-8 text-outline">🍽</span>
+                        <div>
+                          <p className="font-semibold">No meals logged today</p>
+                          <p className="text-xs mt-0.5">
+                            Log your meals by uploading a photo or talking to
+                            NutriGabay AI.
+                          </p>
+                        </div>
+                        <Button
+                          onClick={handleOpenScanDialog}
+                          className="mt-2 rounded-full flex gap-2"
                         >
-                          Log Now
-                        </button>
+                          <Camera className="h-4 w-4" />
+                          Log First Meal
+                        </Button>
                       </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                          {logs
+                            .slice(
+                              (currentPage - 1) * mealsPerPage,
+                              currentPage * mealsPerPage,
+                            )
+                            .map((log) => (
+                              <MealCard
+                                key={log.id}
+                                log={log}
+                                isExpanded={expandedLogId === log.id}
+                                onToggle={() =>
+                                  setExpandedLogId(
+                                    expandedLogId === log.id ? null : log.id,
+                                  )
+                                }
+                              />
+                            ))}
+                        </div>
+                        {logs.length > mealsPerPage && (
+                          <div className="flex items-center justify-between mt-4 border-t border-outline-variant/30 pt-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setCurrentPage((prev) => Math.max(prev - 1, 1))
+                              }
+                              disabled={currentPage === 1}
+                            >
+                              Previous
+                            </Button>
+                            <span className="text-sm text-on-surface-variant font-medium">
+                              Page {currentPage} of{" "}
+                              {Math.ceil(logs.length / mealsPerPage)}
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setCurrentPage((prev) =>
+                                  Math.min(
+                                    prev + 1,
+                                    Math.ceil(logs.length / mealsPerPage),
+                                  ),
+                                )
+                              }
+                              disabled={
+                                currentPage ===
+                                Math.ceil(logs.length / mealsPerPage)
+                              }
+                            >
+                              Next
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Column (span 1) */}
+                <div className="lg:col-span-1">
+                  {/* Clinical Reminders (dynamic from API) */}
+                  <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30 h-full">
+                    <div className="flex items-center gap-2 mb-6">
+                      <Calendar className="h-5 w-5 text-primary" />
+                      <h3 className="text-lg font-bold text-on-surface">
+                        Clinical Reminders
+                      </h3>
                     </div>
 
-                    {/* Weight Reminder */}
-                    <div className="flex gap-4 items-start border-t border-outline-variant/30 pt-5">
-                      <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center shrink-0">
-                        <Info className="h-5 w-5" />
+                    {reminders.length === 0 ? (
+                      <p className="text-xs text-on-surface-variant">
+                        No reminders set by your clinician.
+                      </p>
+                    ) : (
+                      <div className="space-y-4">
+                        {reminders.map((reminder) => (
+                          <div
+                            key={reminder.id}
+                            className="flex gap-3 items-start"
+                          >
+                            <div className="w-9 h-9 bg-primary-container text-on-primary-container rounded-lg flex items-center justify-center shrink-0 text-sm">
+                              {REMINDER_ICONS[reminder.reminder_type] || "📋"}
+                            </div>
+                            <div className="flex-grow min-w-0">
+                              <p className="text-sm font-bold text-on-surface truncate">
+                                {reminder.title}
+                              </p>
+                              {reminder.description && (
+                                <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
+                                  {reminder.description}
+                                </p>
+                              )}
+                              {reminder.schedule && (
+                                <p className="text-[10px] text-outline mt-1">
+                                  ⏰ {reminder.schedule}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <div className="flex-grow">
-                        <p className="text-sm font-bold text-on-surface">Weekly Weigh-in</p>
-                        <p className="text-xs text-on-surface-variant font-medium mt-0.5">Due: Tomorrow morning</p>
-                      </div>
-                    </div>
-
-
+                    )}
                   </div>
                 </div>
               </div>
             </div>
-
-            </div>
-
-
-
           </div>
         </main>
 

@@ -7,7 +7,17 @@ from sqlmodel import Session, select
 
 from app.auth import get_current_user, get_password_hash
 from app.database import get_session
-from app.models import ClinicalAlerts, DietaryTargets, FoodLogs, User, UserRole
+from app.models import (
+    ClinicalAlerts,
+    ClinicalReminder,
+    ClinicalReminderCreate,
+    ClinicalReminderType,
+    ClinicalReminderUpdate,
+    DietaryTargets,
+    FoodLogs,
+    User,
+    UserRole,
+)
 from app.services.ai_summary import generate_nutrition_summary
 
 router = APIRouter(prefix="/clinicians", tags=["Clinicians"])
@@ -246,6 +256,90 @@ def get_all_alerts(
             }
         )
     return result
+
+
+# ── Clinical Reminders ──────────────────────────────────────────────
+
+
+@router.get("/patients/{patient_id}/reminders")
+def get_patient_reminders(
+    patient_id: int,
+    current_user: User = Depends(get_current_clinician),
+    session: Session = Depends(get_session),
+):
+    statement = (
+        select(ClinicalReminder)
+        .where(ClinicalReminder.patient_id == patient_id)
+        .order_by(ClinicalReminder.created_at.desc())
+    )
+    return session.exec(statement).all()
+
+
+@router.post("/patients/{patient_id}/reminders")
+def create_reminder(
+    patient_id: int,
+    data: ClinicalReminderCreate,
+    current_user: User = Depends(get_current_clinician),
+    session: Session = Depends(get_session),
+):
+    reminder = ClinicalReminder(
+        patient_id=patient_id,
+        clinician_id=current_user.id,
+        reminder_type=ClinicalReminderType(data.reminder_type),
+        title=data.title,
+        description=data.description,
+        schedule=data.schedule,
+    )
+    session.add(reminder)
+    session.commit()
+    session.refresh(reminder)
+    return reminder
+
+
+@router.put("/patients/{patient_id}/reminders/{reminder_id}")
+def update_reminder(
+    patient_id: int,
+    reminder_id: int,
+    data: ClinicalReminderUpdate,
+    current_user: User = Depends(get_current_clinician),
+    session: Session = Depends(get_session),
+):
+    reminder = session.get(ClinicalReminder, reminder_id)
+    if not reminder or reminder.patient_id != patient_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Reminder not found"
+        )
+    update_data = data.dict(exclude_unset=True)
+    if "reminder_type" in update_data:
+        update_data["reminder_type"] = ClinicalReminderType(
+            update_data["reminder_type"]
+        )
+    for key, value in update_data.items():
+        setattr(reminder, key, value)
+    reminder.updated_at = datetime.now(timezone.utc)
+    session.add(reminder)
+    session.commit()
+    session.refresh(reminder)
+    return reminder
+
+
+@router.delete("/patients/{patient_id}/reminders/{reminder_id}")
+def deactivate_reminder(
+    patient_id: int,
+    reminder_id: int,
+    current_user: User = Depends(get_current_clinician),
+    session: Session = Depends(get_session),
+):
+    reminder = session.get(ClinicalReminder, reminder_id)
+    if not reminder or reminder.patient_id != patient_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Reminder not found"
+        )
+    reminder.is_active = False
+    reminder.updated_at = datetime.now(timezone.utc)
+    session.add(reminder)
+    session.commit()
+    return {"ok": True}
 
 
 @router.patch("/alerts/{alert_id}/resolve")

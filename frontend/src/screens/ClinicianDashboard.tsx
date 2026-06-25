@@ -37,18 +37,17 @@ import {
   RefreshCw,
   ChevronLeft,
   Sparkles,
-  ShieldCheck,
   CheckCircle,
   XCircle,
   Trash2,
   MessageSquare,
-  Send,
   Utensils,
 } from "lucide-react";
 import { ClinicianChatHub } from "./ClinicianChatHub";
 import PatientList from "../components/PatientList";
 import MetricCard from "../components/MetricCard";
 import TargetEditor from "../components/TargetEditor";
+import ClinicalReminders from "../components/ClinicalReminders";
 
 interface User {
   id: number;
@@ -307,7 +306,7 @@ const ClinicianDashboard = () => {
               <img
                 src={logoBrand}
                 alt="NutriSync Logo"
-                className="w-14 h-12 object-contain flex-shrink-0"
+                className="w-14 h-12 object-contain shrink-0"
               />
               <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="text-base font-extrabold text-sidebar-primary">
@@ -366,7 +365,7 @@ const ClinicianDashboard = () => {
                       />
                       <span>Urgent Tasks</span>
                       {alerts.length > 0 && (
-                        <span className="ml-auto bg-error text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                        <span className="ml-auto bg-error text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-4.5 text-center">
                           {alerts.length}
                         </span>
                       )}
@@ -390,7 +389,7 @@ const ClinicianDashboard = () => {
                       />
                       <span>Messages Hub</span>
                       {totalUnreadCount > 0 && (
-                        <span className="ml-auto bg-primary text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                        <span className="ml-auto bg-primary text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-4.5 text-center">
                           {totalUnreadCount}
                         </span>
                       )}
@@ -438,7 +437,7 @@ const ClinicianDashboard = () => {
 
         <SidebarInset className="flex flex-col min-h-screen overflow-y-auto bg-background">
           {/* Top Bar */}
-          <header className="sticky top-0 z-40 bg-white border-b border-outline-variant flex items-center justify-between px-6 h-16 flex-shrink-0">
+          <header className="sticky top-0 z-40 bg-white border-b border-outline-variant flex items-center justify-between px-6 h-16 shrink-0">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-on-surface-variant" />
               <div className="relative max-w-md w-64">
@@ -487,7 +486,7 @@ const ClinicianDashboard = () => {
                     Cardiology
                   </p>
                 </div>
-                <div className="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center text-xs font-bold text-on-surface border-2 border-primary/30 flex-shrink-0">
+                <div className="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center text-xs font-bold text-on-surface border-2 border-primary/30 shrink-0">
                   {initials}
                 </div>
               </div>
@@ -543,6 +542,10 @@ const ClinicianDashboard = () => {
                       initialTargets={patientTargets}
                       onNotify={(type, message) => setNotify({ type, message })}
                     />
+                    <ClinicalReminders
+                      patientId={selectedPatient.id}
+                      onNotify={(type, message) => setNotify({ type, message })}
+                    />
 
                     {/* AI Summary */}
                     <div className="bg-primary/5 border border-primary/20 p-6 rounded-2xl shadow-sm relative overflow-hidden">
@@ -589,60 +592,64 @@ const ClinicianDashboard = () => {
                         {patientLogs.map((log) => (
                           <div
                             key={log.id}
-                            className="flex flex-col md:flex-row border border-outline-variant/60 rounded-xl p-4 gap-4 bg-surface-bright/50"
+                            className="border border-outline-variant/60 rounded-xl p-4 bg-surface-bright/50"
                           >
-                            {log.image_url && (
-                              <div className="w-full md:w-28 h-28 rounded-lg overflow-hidden shrink-0 border border-outline-variant">
-                                <img
-                                  src={`http://127.0.0.1:8000${log.image_url}`}
-                                  alt={log.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
-                            <div className="flex-grow flex flex-col justify-between">
-                              <div>
-                                <h4 className="font-bold text-sm text-on-surface">
-                                  {log.name}
-                                </h4>
-                                <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
-                                  {log.description}
-                                </p>
-                                <p className="text-[10px] text-outline font-medium mt-1">
-                                  {new Date(log.logged_at).toLocaleString()}
-                                </p>
-                              </div>
-                              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 border-t border-outline-variant/40 pt-2 text-[11px] text-on-surface-variant">
-                                <span>
-                                  Calories:{" "}
-                                  <strong>
-                                    {Math.round(log.calories_kcal)} kcal
-                                  </strong>
-                                </span>
-                                <span>
-                                  Sodium:{" "}
-                                  <strong>
-                                    {Math.round(log.sodium_mg)} mg
-                                  </strong>
-                                </span>
-                                <span>
-                                  Carbs:{" "}
-                                  <strong>{Math.round(log.carbs_g)} g</strong>
-                                </span>
-                                <span>
-                                  Protein:{" "}
-                                  <strong>{Math.round(log.protein_g)} g</strong>
-                                </span>
-                                <span>
-                                  Fat:{" "}
-                                  <strong>{Math.round(log.fat_g)} g</strong>
-                                </span>
-                                <span>
-                                  Potassium:{" "}
-                                  <strong>
-                                    {Math.round(log.potassium_mg)} mg
-                                  </strong>
-                                </span>
+                            <div className="flex flex-col md:flex-row gap-4">
+                              {log.image_url && (
+                                <div className="w-full md:w-28 h-28 rounded-lg overflow-hidden shrink-0 border border-outline-variant">
+                                  <img
+                                    src={`http://127.0.0.1:8000${log.image_url}`}
+                                    alt={log.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
+                              <div className="grow flex flex-col justify-between">
+                                <div>
+                                  <h4 className="font-bold text-sm text-on-surface">
+                                    {log.name}
+                                  </h4>
+                                  <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
+                                    {log.description}
+                                  </p>
+                                  <p className="text-[10px] text-outline font-medium mt-1">
+                                    {new Date(log.logged_at).toLocaleString()}
+                                  </p>
+                                </div>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 border-t border-outline-variant/40 pt-2 text-[11px] text-on-surface-variant">
+                                  <span>
+                                    Calories:{" "}
+                                    <strong>
+                                      {Math.round(log.calories_kcal)} kcal
+                                    </strong>
+                                  </span>
+                                  <span>
+                                    Sodium:{" "}
+                                    <strong>
+                                      {Math.round(log.sodium_mg)} mg
+                                    </strong>
+                                  </span>
+                                  <span>
+                                    Carbs:{" "}
+                                    <strong>{Math.round(log.carbs_g)} g</strong>
+                                  </span>
+                                  <span>
+                                    Protein:{" "}
+                                    <strong>
+                                      {Math.round(log.protein_g)} g
+                                    </strong>
+                                  </span>
+                                  <span>
+                                    Fat:{" "}
+                                    <strong>{Math.round(log.fat_g)} g</strong>
+                                  </span>
+                                  <span>
+                                    Potassium:{" "}
+                                    <strong>
+                                      {Math.round(log.potassium_mg)} mg
+                                    </strong>
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -684,8 +691,24 @@ const ClinicianDashboard = () => {
               <>
                 {/* Key Metrics */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <MetricCard icon={Users} iconClass="text-secondary" label="Total Patients" value={patients.length.toString()} badge="Active" badgeClass="text-green-700 bg-green-50 px-2 py-0.5 rounded-full" onClick={() => setActiveView('patients')} />
-                  <MetricCard icon={AlertCircle} iconClass="text-error" label="High Risk Alerts" value={alerts.length.toString()} badge="Critical" badgeClass="text-red-700 bg-red-50 px-2 py-0.5 rounded-full" onClick={() => setActiveView('urgent-tasks')} />
+                  <MetricCard
+                    icon={Users}
+                    iconClass="text-secondary"
+                    label="Total Patients"
+                    value={patients.length.toString()}
+                    badge="Active"
+                    badgeClass="text-green-700 bg-green-50 px-2 py-0.5 rounded-full"
+                    onClick={() => setActiveView("patients")}
+                  />
+                  <MetricCard
+                    icon={AlertCircle}
+                    iconClass="text-error"
+                    label="High Risk Alerts"
+                    value={alerts.length.toString()}
+                    badge="Critical"
+                    badgeClass="text-red-700 bg-red-50 px-2 py-0.5 rounded-full"
+                    onClick={() => setActiveView("urgent-tasks")}
+                  />
                 </div>
 
                 <div className="grid grid-cols-12 gap-5">
@@ -754,7 +777,7 @@ const ClinicianDashboard = () => {
                                 >
                                   <td className="px-4 py-4">
                                     <div className="flex items-center gap-3">
-                                      <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                                      <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-xs font-bold text-primary shrink-0">
                                         {initialsAlert}
                                       </div>
                                       <div>
@@ -859,7 +882,7 @@ const ClinicianDashboard = () => {
 
       {/* NOTIFICATION POPUP */}
       {notify && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-200 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div
             className={`flex items-start gap-3 px-5 py-4 rounded-2xl shadow-2xl border max-w-sm w-full ${
               notify.type === "success"
