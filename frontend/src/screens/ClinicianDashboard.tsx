@@ -4,6 +4,7 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { apiFetch } from '../api/client'
 import { AlertDialog } from '../components/ui/alert-dialog'
+import { UrgentTasks } from './UrgentTasks'
 import {
   Sidebar,
   SidebarContent,
@@ -84,13 +85,17 @@ function MetricCard({
   labelClass = 'text-on-surface-variant',
   valueClass = 'text-on-surface',
   watermark,
+  onClick,
 }: {
   icon: React.ElementType; iconClass: string; label: string; value: string
   badge: string; badgeClass: string; cardClass?: string; labelClass?: string
-  valueClass?: string; watermark?: React.ReactNode
+  valueClass?: string; watermark?: React.ReactNode; onClick?: () => void
 }) {
   return (
-    <div className={`relative overflow-hidden border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow ${cardClass}`}>
+    <div 
+      onClick={onClick}
+      className={`relative overflow-hidden border rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 ${cardClass} ${onClick ? 'cursor-pointer hover:border-primary/40 active:scale-[0.98]' : ''}`}
+    >
       {watermark && <div className="absolute -right-4 -top-4 opacity-10 pointer-events-none">{watermark}</div>}
       <div className="flex justify-between items-start mb-2 relative z-10">
         <Icon className={`h-6 w-6 ${iconClass}`} />
@@ -109,7 +114,7 @@ const ClinicianDashboard = () => {
   const initials = (user?.full_name ?? 'MS').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 
   // State
-  const [activeView, setActiveView] = useState<'dashboard' | 'patients'>('dashboard')
+  const [activeView, setActiveView] = useState<'dashboard' | 'patients' | 'urgent-tasks'>('dashboard')
   const [patients, setPatients] = useState<User[]>([])
   const [alerts, setAlerts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -353,6 +358,21 @@ const ClinicianDashboard = () => {
                     >
                       <Users />
                       <span>Patient Directory</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => { setActiveView('urgent-tasks'); setSelectedPatient(null); }}
+                      isActive={activeView === 'urgent-tasks' && !selectedPatient}
+                      tooltip="Urgent Tasks"
+                    >
+                      <AlertCircle className={alerts.length > 0 ? "text-error animate-pulse" : ""} />
+                      <span>Urgent Tasks</span>
+                      {alerts.length > 0 && (
+                        <span className="ml-auto bg-error text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                          {alerts.length}
+                        </span>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
@@ -627,14 +647,20 @@ const ClinicianDashboard = () => {
                   </table>
                 </div>
               </div>
+            ) : activeView === 'urgent-tasks' ? (
+              <UrgentTasks
+                onSelectPatient={handleSelectPatient}
+                patients={patients}
+                onAlertResolved={fetchData}
+              />
             ) : (
               // ── MAIN CLINICAL DASHBOARD VIEW ─────────────────────────────────
               <>
                 {/* Key Metrics */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                  <MetricCard icon={Users} iconClass="text-secondary" label="Total Patients" value={patients.length.toString()} badge="Active" badgeClass="text-green-700 bg-green-50 px-2 py-0.5 rounded-full" />
-                  <MetricCard icon={AlertCircle} iconClass="text-error" label="High Risk Alerts" value={alerts.length.toString()} badge="Critical" badgeClass="text-red-700 bg-red-50 px-2 py-0.5 rounded-full" />
-                  <MetricCard icon={Utensils} iconClass="text-primary" label="Patient Directory" value={patients.length.toString()} badge="Directory" badgeClass="text-primary bg-primary/5 px-2 py-0.5 rounded-full" />
+                  <MetricCard icon={Users} iconClass="text-secondary" label="Total Patients" value={patients.length.toString()} badge="Active" badgeClass="text-green-700 bg-green-50 px-2 py-0.5 rounded-full" onClick={() => setActiveView('patients')} />
+                  <MetricCard icon={AlertCircle} iconClass="text-error" label="High Risk Alerts" value={alerts.length.toString()} badge="Critical" badgeClass="text-red-700 bg-red-50 px-2 py-0.5 rounded-full" onClick={() => setActiveView('urgent-tasks')} />
+                  <MetricCard icon={Utensils} iconClass="text-primary" label="Patient Directory" value={patients.length.toString()} badge="Directory" badgeClass="text-primary bg-primary/5 px-2 py-0.5 rounded-full" onClick={() => setActiveView('patients')} />
                   <MetricCard icon={BadgeCheck} iconClass="text-primary" label="Compliance Monitoring" value="100%" badge="Normal" badgeClass="text-green-700 bg-green-50 px-2 py-0.5 rounded-full" />
                 </div>
 

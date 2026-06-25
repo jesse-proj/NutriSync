@@ -180,9 +180,32 @@ def get_patient_report_summary(patient_id: int, current_user: User = Depends(get
     except Exception as e:
         return {"summary": "Failed to generate AI summary at this time.", "error": str(e)}
 
-@router.get("/alerts", response_model=List[ClinicalAlerts])
+@router.get("/alerts")
 def get_all_alerts(current_user: User = Depends(get_current_clinician), session: Session = Depends(get_session)):
-    # Return all unresolved alerts for patients
+    """Return all unresolved alerts enriched with patient names."""
     statement = select(ClinicalAlerts).where(ClinicalAlerts.is_resolved == False).order_by(ClinicalAlerts.created_at.desc())
     alerts = session.exec(statement).all()
-    return alerts
+    result = []
+    for alert in alerts:
+        patient = session.get(User, alert.patient_id)
+        result.append({
+            "id": alert.id,
+            "patient_id": alert.patient_id,
+            "patient_name": patient.full_name if patient else f"Patient #{alert.patient_id}",
+            "alert_type": alert.alert_type,
+            "message": alert.message,
+            "is_resolved": alert.is_resolved,
+            "created_at": alert.created_at,
+        })
+    return result
+
+@router.patch("/alerts/{alert_id}/resolve")
+def resolve_alert(alert_id: int, current_user: User = Depends(get_current_clinician), session: Session = Depends(get_session)):
+    """Mark a clinical alert as resolved."""
+    alert = session.get(ClinicalAlerts, alert_id)
+    if not alert:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found")
+    alert.is_resolved = True
+    session.add(alert)
+    session.commit()
+    return {"ok": True}
