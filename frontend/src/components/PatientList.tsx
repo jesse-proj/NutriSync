@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { UserPlus, Search, Trash2 } from 'lucide-react'
+import { UserPlus, Search } from 'lucide-react'
 import { apiFetch } from '../api/client'
 
 interface User {
@@ -22,9 +22,7 @@ interface PatientListProps {
 
 const PatientList = ({ patients, onSelectPatient, onNotify, searchQuery, setSearchQuery }: PatientListProps) => {
   const [isAddPatientOpen, setIsAddPatientOpen] = useState(false)
-  const [addName, setAddName] = useState('')
   const [addEmail, setAddEmail] = useState('')
-  const [addPassword, setAddPassword] = useState('')
   const [isSubmittingPatient, setIsSubmittingPatient] = useState(false)
 
   const filteredPatients = patients.filter(p =>
@@ -34,27 +32,24 @@ const PatientList = ({ patients, onSelectPatient, onNotify, searchQuery, setSear
 
   const handleCreatePatient = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!addName || !addEmail || !addPassword) {
-      alert("Please fill out all fields")
+    if (!addEmail) {
+      alert("Please enter the patient's email address")
       return
     }
     setIsSubmittingPatient(true)
     try {
       const newPatient = await apiFetch('/api/clinicians/patients', {
         method: 'POST',
-        json: { full_name: addName, email: addEmail, password: addPassword, consent_given: true }
+        json: { email: addEmail }
       })
       if (newPatient) {
         setIsAddPatientOpen(false)
-        setAddName('')
         setAddEmail('')
-        setAddPassword('')
-        onNotify('success', `Patient account for ${newPatient.full_name} created successfully!`)
-        onSelectPatient(newPatient)
+        onNotify('success', `Link request sent to patient.`)
       }
     } catch (err: any) {
-      console.error("Error creating patient account", err)
-      onNotify('error', err.message || 'Failed to create patient account')
+      console.error("Error linking patient account", err)
+      onNotify('error', err.message || 'Failed to link patient account')
     } finally {
       setIsSubmittingPatient(false)
     }
@@ -132,24 +127,16 @@ const PatientList = ({ patients, onSelectPatient, onNotify, searchQuery, setSear
             </button>
             <h2 className="text-xl font-bold text-on-surface mb-1 flex items-center gap-2">
               <UserPlus className="h-6 w-6 text-primary" />
-              Register New Patient
+              Link Patient Account
             </h2>
-            <p className="text-xs text-on-surface-variant mb-6">Create a monitored account under DPA 2012 compliance.</p>
+            <p className="text-xs text-on-surface-variant mb-6">Enter the patient's email address to link their existing account to your dashboard.</p>
             <form onSubmit={handleCreatePatient} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-on-surface-variant block mb-1">Full Name</label>
-                <Input type="text" placeholder="Juan dela Cruz" value={addName} onChange={e => setAddName(e.target.value)} required />
-              </div>
               <div>
                 <label className="text-xs font-bold text-on-surface-variant block mb-1">Email Address</label>
                 <Input type="email" placeholder="juan@example.com" value={addEmail} onChange={e => setAddEmail(e.target.value)} required />
               </div>
-              <div>
-                <label className="text-xs font-bold text-on-surface-variant block mb-1">Temporary Password</label>
-                <Input type="password" placeholder="At least 8 characters" value={addPassword} onChange={e => setAddPassword(e.target.value)} required minLength={8} />
-              </div>
               <Button type="submit" disabled={isSubmittingPatient} className="w-full bg-primary hover:bg-primary/95 text-white h-12 rounded-xl flex items-center justify-center font-bold text-sm cursor-pointer border-none">
-                {isSubmittingPatient ? 'Registering...' : 'Register Patient'}
+                {isSubmittingPatient ? 'Linking...' : 'Link Patient'}
               </Button>
             </form>
           </div>

@@ -10,6 +10,7 @@ from app.models import (
     ClinicalReminder,
     DietaryTargets,
     FoodLogs,
+    PatientClinicianLink,
     User,
     UserRole,
 )
@@ -70,6 +71,93 @@ def get_patient_alerts(
     )
     alerts = session.exec(statement).all()
     return alerts
+
+
+@router.patch("/alerts/{alert_id}/resolve")
+def resolve_patient_alert(
+    alert_id: int,
+    current_user: User = Depends(get_current_patient),
+    session: Session = Depends(get_session),
+):
+    statement = select(ClinicalAlerts).where(
+        ClinicalAlerts.id == alert_id, ClinicalAlerts.patient_id == current_user.id
+    )
+    alert = session.exec(statement).first()
+    if not alert:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found"
+        )
+
+    if alert.alert_type.startswith("CLINICIAN_LINK:"):
+        clinician_id = int(alert.alert_type.split(":")[1])
+
+        # Link the clinician
+        link_stmt = select(PatientClinicianLink).where(
+            PatientClinicianLink.patient_id == current_user.id,
+            PatientClinicianLink.clinician_id == clinician_id,
+        )
+        if not session.exec(link_stmt).first():
+            new_link = PatientClinicianLink(
+                patient_id=current_user.id, clinician_id=clinician_id
+            )
+            session.add(new_link)
+
+        # Initialize default dietary targets
+        target_stmt = select(DietaryTargets).where(
+            DietaryTargets.patient_id == current_user.id,
+            DietaryTargets.clinician_id == clinician_id,
+        )
+        if not session.exec(target_stmt).first():
+            targets = DietaryTargets(
+                patient_id=current_user.id, clinician_id=clinician_id
+            )
+            session.add(targets)
+
+    alert.is_resolved = True
+    session.add(alert)
+    session.commit()
+    return {"ok": True}
+
+
+@router.patch("/alerts/{alert_id}/reject")
+def reject_patient_alert(
+    alert_id: int,
+    current_user: User = Depends(get_current_patient),
+    session: Session = Depends(get_session),
+):
+    statement = select(ClinicalAlerts).where(
+        ClinicalAlerts.id == alert_id, ClinicalAlerts.patient_id == current_user.id
+    )
+    alert = session.exec(statement).first()
+    if not alert:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found"
+        )
+
+    if alert.alert_type.startswith("CLINICIAN_LINK:"):
+        clinician_id = int(alert.alert_type.split(":")[1])
+        # Unlink the clinician
+        link_stmt = select(PatientClinicianLink).where(
+            PatientClinicianLink.patient_id == current_user.id,
+            PatientClinicianLink.clinician_id == clinician_id,
+        )
+        link = session.exec(link_stmt).first()
+        if link:
+            session.delete(link)
+
+        # Delete related dietary targets
+        targets_statement = select(DietaryTargets).where(
+            DietaryTargets.patient_id == current_user.id,
+            DietaryTargets.clinician_id == clinician_id,
+        )
+        targets = session.exec(targets_statement).all()
+        for target in targets:
+            session.delete(target)
+
+    alert.is_resolved = True
+    session.add(alert)
+    session.commit()
+    return {"ok": True}
 
 
 @router.get("/reports/summary")

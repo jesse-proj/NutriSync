@@ -34,6 +34,12 @@ class UserCreate(UserBase):
 class UserRead(UserBase):
     id: int
 
+class PatientClinicianLink(SQLModel, table=True):
+    __tablename__ = "patient_clinician_links"
+
+    patient_id: int = Field(foreign_key="users.id", primary_key=True)
+    clinician_id: int = Field(foreign_key="users.id", primary_key=True)
+    linked_at: datetime = Field(default_factory=utc_now)
 
 class User(UserBase, table=True):
     __tablename__ = "users"

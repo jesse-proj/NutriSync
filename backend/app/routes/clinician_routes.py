@@ -15,6 +15,7 @@ from app.models import (
     ClinicalReminderUpdate,
     DietaryTargets,
     FoodLogs,
+    PatientClinicianLink,
     User,
     UserRole,
 )
@@ -38,11 +39,8 @@ class DietaryTargetsUpdate(BaseModel):
     potassium_mg: Optional[float] = None
 
 
-class PatientCreate(BaseModel):
+class PatientLinkRequest(BaseModel):
     email: str
-    full_name: str
-    password: str
-    consent_given: bool = True
 
 
 @router.get("/patients", response_model=List[User])
@@ -50,50 +48,74 @@ def get_patients(
     current_user: User = Depends(get_current_clinician),
     session: Session = Depends(get_session),
 ):
-    # For now, return all patients.
-    statement = select(User).where(User.role == UserRole.PATIENT)
+    # Only return patients linked to this clinician
+    statement = (
+        select(User)
+        .join(PatientClinicianLink, User.id == PatientClinicianLink.patient_id)
+        .where(
+            PatientClinicianLink.clinician_id == current_user.id,
+            User.role == UserRole.PATIENT,
+        )
+    )
     patients = session.exec(statement).all()
     return patients
 
 
 @router.post("/patients", response_model=User, status_code=status.HTTP_201_CREATED)
-def create_patient(
-    patient_data: PatientCreate,
+def link_patient(
+    link_data: PatientLinkRequest,
     current_user: User = Depends(get_current_clinician),
     session: Session = Depends(get_session),
 ):
-    # Check if email already registered
-    statement = select(User).where(User.email == patient_data.email)
-    existing_user = session.exec(statement).first()
-    if existing_user:
+    # Find patient by email
+    statement = select(User).where(
+        User.email == link_data.email, User.role == UserRole.PATIENT
+    )
+    patient = session.exec(statement).first()
+    if not patient:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An account with this email address already exists.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Patient with this email not found.",
         )
 
-    # Create the patient
-    hashed_pwd = get_password_hash(patient_data.password)
-    new_patient = User(
-        email=patient_data.email,
-        full_name=patient_data.full_name,
-        role=UserRole.PATIENT,
-        consent_given=patient_data.consent_given,
-        hashed_password=hashed_pwd,
+    # Check if already linked
+    link_stmt = select(PatientClinicianLink).where(
+        PatientClinicianLink.patient_id == patient.id,
+        PatientClinicianLink.clinician_id == current_user.id,
     )
-    session.add(new_patient)
-    session.commit()
-    session.refresh(new_patient)
+    existing_link = session.exec(link_stmt).first()
+    if existing_link:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Patient is already linked to your account.",
+        )
 
-    # Initialize default dietary targets linked to this clinician
-    targets = DietaryTargets(patient_id=new_patient.id, clinician_id=current_user.id)
-    session.add(targets)
+    # Check if an invite is already pending
+    pending_alert_stmt = select(ClinicalAlerts).where(
+        ClinicalAlerts.patient_id == patient.id,
+        ClinicalAlerts.alert_type == f"CLINICIAN_LINK:{current_user.id}",
+        ClinicalAlerts.is_resolved == False,
+    )
+    if session.exec(pending_alert_stmt).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An invite is already pending for this patient.",
+        )
+
+    # Create a notification for the patient
+    alert = ClinicalAlerts(
+        patient_id=patient.id,
+        alert_type=f"CLINICIAN_LINK:{current_user.id}",
+        message=f"Clinician {current_user.full_name} is requesting to link to your account.",
+    )
+    session.add(alert)
     session.commit()
 
-    return new_patient
+    return patient
 
 
 @router.delete("/patients/{patient_id}")
-def delete_patient(
+def unlink_patient(
     patient_id: int,
     current_user: User = Depends(get_current_clinician),
     session: Session = Depends(get_session),
@@ -105,30 +127,32 @@ def delete_patient(
             status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found"
         )
 
-    # Delete related dietary targets
+    # Delete the link
+    link_stmt = select(PatientClinicianLink).where(
+        PatientClinicianLink.patient_id == patient_id,
+        PatientClinicianLink.clinician_id == current_user.id,
+    )
+    link = session.exec(link_stmt).first()
+    if link:
+        session.delete(link)
+
+    # Delete related dietary targets for THIS clinician
     targets_statement = select(DietaryTargets).where(
-        DietaryTargets.patient_id == patient_id
+        DietaryTargets.patient_id == patient_id,
+        DietaryTargets.clinician_id == current_user.id,
     )
     targets = session.exec(targets_statement).all()
     for target in targets:
         session.delete(target)
 
-    # Delete related food logs
-    logs_statement = select(FoodLogs).where(FoodLogs.patient_id == patient_id)
-    logs = session.exec(logs_statement).all()
-    for log in logs:
-        session.delete(log)
-
-    # Delete related clinical alerts
-    alerts_statement = select(ClinicalAlerts).where(
-        ClinicalAlerts.patient_id == patient_id
+    # Create an alert for the patient
+    alert = ClinicalAlerts(
+        patient_id=patient.id,
+        alert_type="CLINICIAN_UNLINK",
+        message=f"Clinician {current_user.full_name} has removed you from their dashboard.",
     )
-    alerts = session.exec(alerts_statement).all()
-    for alert in alerts:
-        session.delete(alert)
+    session.add(alert)
 
-    # Delete patient
-    session.delete(patient)
     session.commit()
     return {"success": True}
 
@@ -236,6 +260,8 @@ def get_all_alerts(
     statement = (
         select(ClinicalAlerts)
         .where(ClinicalAlerts.is_resolved == False)
+        .where(~ClinicalAlerts.alert_type.startswith("CLINICIAN_LINK"))
+        .where(~ClinicalAlerts.alert_type.startswith("CLINICIAN_UNLINK"))
         .order_by(ClinicalAlerts.created_at.desc())
     )
     alerts = session.exec(statement).all()
