@@ -106,7 +106,43 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <main className="flex min-h-screen w-full items-center justify-center bg-radial from-[#e8eeff] to-[#f9f9ff] py-8 px-4">
+    <main
+      className="flex min-h-screen w-full items-center justify-center bg-radial from-[#e8eeff] to-[#f9f9ff] py-8 px-4"
+      style={{ "--accent-color": accent } as React.CSSProperties}
+    >
+      <style>{`
+        .reg-input:focus {
+          outline: none;
+          border-color: var(--accent-color);
+          box-shadow: 0 0 0 3px var(--accent-color)33;
+        }
+        .reg-checkbox { accent-color: var(--accent-color); }
+        .reg-submit {
+          background-color: var(--accent-color);
+          transition: background-color 0.4s ease, opacity 0.2s ease;
+        }
+        .reg-submit:hover {
+          opacity: 0.9;
+        }
+        .reg-tab-active {
+          background-color: var(--accent-color);
+          color: #fff;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+          transition: background-color 0.4s ease, color 0.4s ease;
+        }
+        .reg-tab-idle {
+          color: #717786;
+          transition: color 0.4s ease;
+        }
+        .reg-link {
+          color: var(--accent-color);
+          transition: color 0.4s ease;
+        }
+        .reg-icon {
+          color: var(--accent-color);
+          transition: color 0.4s ease;
+        }
+      `}</style>
       <div className="w-full max-w-[480px] flex flex-col items-center">
         {/* Logo Section */}
         <img
@@ -134,10 +170,10 @@ const RegisterPage: React.FC = () => {
             id="role-selector"
           >
             <button
-              className={`flex-1 py-1.5 text-label-sm font-label-sm rounded-md z-10 transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 text-label-sm font-label-sm rounded-md z-10 transition-all duration-300 cursor-pointer ${
                 role === "patient"
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "reg-tab-active"
+                  : "reg-tab-idle hover:text-on-surface"
               }`}
               onClick={() => {
                 setRole("patient");
@@ -148,10 +184,10 @@ const RegisterPage: React.FC = () => {
               Patient
             </button>
             <button
-              className={`flex-1 py-1.5 text-label-sm font-label-sm rounded-md z-10 transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 text-label-sm font-label-sm rounded-md z-10 transition-all duration-300 cursor-pointer ${
                 role === "clinician"
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "reg-tab-active"
+                  : "reg-tab-idle hover:text-on-surface"
               }`}
               onClick={() => {
                 setRole("clinician");
@@ -282,11 +318,11 @@ const RegisterPage: React.FC = () => {
                     Profession
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-                      <Briefcase className="h-4 w-4" />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2">
+                      <Briefcase className="h-4 w-4 reg-icon" />
                     </span>
                     <input
-                      className="w-full pl-9 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50"
+                      className={`${inputBase} reg-input`}
                       id="profession"
                       placeholder="e.g. Cardiologist, Nurse, Dietitian"
                       type="text"
@@ -304,11 +340,11 @@ const RegisterPage: React.FC = () => {
                     PRC License Number
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-                      <CreditCard className="h-4 w-4" />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2">
+                      <CreditCard className="h-4 w-4 reg-icon" />
                     </span>
                     <input
-                      className="w-full pl-9 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50"
+                      className={`${inputBase} reg-input`}
                       id="prcNumber"
                       placeholder="e.g. 1234567"
                       type="text"
@@ -326,11 +362,11 @@ const RegisterPage: React.FC = () => {
                     Date of Birth
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-                      <Calendar className="h-4 w-4" />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2">
+                      <Calendar className="h-4 w-4 reg-icon" />
                     </span>
                     <input
-                      className="w-full pl-9 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-outline/50"
+                      className={`${inputBase} reg-input`}
                       id="dateOfBirth"
                       type="date"
                       value={dateOfBirth}
@@ -363,7 +399,7 @@ const RegisterPage: React.FC = () => {
                       htmlFor="prcIdImage"
                       className="flex items-center gap-3 w-full px-4 py-2 bg-surface-bright border border-outline-variant rounded-lg text-sm cursor-pointer hover:border-primary transition-colors"
                     >
-                      <Upload className="h-4 w-4 text-outline" />
+                      <Upload className="h-4 w-4 reg-icon" />
                       <span
                         className={
                           prcIdImage ? "text-on-surface" : "text-outline/50"
