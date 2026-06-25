@@ -1,9 +1,10 @@
+import base64
 import io
 import json
-import base64
 from typing import Optional
-from PIL import Image
+
 from groq import Groq
+from PIL import Image
 
 from app.config import settings
 
@@ -16,9 +17,15 @@ class GroqVisionProvider:
     def __init__(self):
         self.client = Groq(api_key=settings.GROQ_API_KEY_TWO)
 
-    def compress_image(self, image_bytes: bytes, mime_type: str, max_size: int = 1_000_000) -> tuple[bytes, str]:
+    def compress_image(
+        self, image_bytes: bytes, mime_type: str, max_size: int = 1_000_000
+    ) -> tuple[bytes, str]:
         """Compress image if it exceeds max_size. Returns (bytes, mime_type)."""
-        if len(image_bytes) <= max_size and mime_type in ("image/jpeg", "image/png", "image/webp"):
+        if len(image_bytes) <= max_size and mime_type in (
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+        ):
             return image_bytes, mime_type
 
         image = Image.open(io.BytesIO(image_bytes))
@@ -82,7 +89,3 @@ class GroqVisionProvider:
                 raw = raw[:-3]
             raw = raw.strip()
         return json.loads(raw)
-
-def get_vision_provider() -> GroqVisionProvider:
-    """Factory: returns the Groq vision provider for text descriptions."""
-    return GroqVisionProvider()

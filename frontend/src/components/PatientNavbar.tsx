@@ -1,32 +1,35 @@
 // ponytail: Shared patient navbar component — update once, reflects on all patient screens
 
-import { Link } from 'react-router-dom'
-import { Bell, LogOut } from 'lucide-react'
-import { Button } from './ui/button'
-import { useAuth } from '../context/AuthContext'
-import logoBrand from '../assets/nutrisync.png'
+import { Link } from "react-router-dom";
+import { Bell, LogOut } from "lucide-react";
+import { Button } from "./ui/button";
+import { useAuth } from "../context/AuthContext";
+import logoBrand from "../assets/nutrisync.png";
 
-type ActivePage = 'dashboard' | 'reports' | 'goals' | 'profile'
+type ActivePage = "dashboard" | "reports" | "goals" | "profile";
 
 interface PatientNavbarProps {
-  activePage?: ActivePage
+  activePage?: ActivePage;
 }
 
 const navLinks: { label: string; to: string; page: ActivePage }[] = [
-  { label: 'Home',    to: '/patient/dashboard', page: 'dashboard' },
-  { label: 'Reports', to: '/patient/reports',   page: 'reports'   },
-  { label: 'Goals',   to: '/patient/goals',     page: 'goals'     },
-]
+  { label: "Home", to: "/patient/dashboard", page: "dashboard" },
+  { label: "Reports", to: "/patient/reports", page: "reports" },
+  { label: "Goals", to: "/patient/goals", page: "goals" },
+];
 
 const PatientNavbar = ({ activePage }: PatientNavbarProps) => {
-  const { user, logout } = useAuth()
+  const { user, logout } = useAuth();
 
   return (
     <header className="w-full top-0 sticky z-40 bg-surface shadow-sm border-b border-outline-variant">
       <nav className="flex justify-between items-center h-16 px-6 max-w-7xl mx-auto">
         {/* Left: Logo + nav links */}
         <div className="flex items-center gap-8">
-          <Link to="/patient/dashboard" className="text-xl font-bold text-primary flex items-center gap-2">
+          <Link
+            to="/patient/dashboard"
+            className="text-xl font-bold text-primary flex items-center gap-2"
+          >
             <img src={logoBrand} className="h-12 w-17" alt="NutriSync logo" />
           </Link>
 
@@ -37,8 +40,8 @@ const PatientNavbar = ({ activePage }: PatientNavbarProps) => {
                 to={to}
                 className={
                   activePage === page
-                    ? 'text-primary font-semibold border-b-2 border-primary pb-1 text-sm transition-all'
-                    : 'text-on-surface-variant hover:text-primary transition-colors text-sm'
+                    ? "text-primary font-semibold border-b-2 border-primary pb-1 text-sm transition-all"
+                    : "text-on-surface-variant hover:text-primary transition-colors text-sm"
                 }
               >
                 {label}
@@ -65,14 +68,14 @@ const PatientNavbar = ({ activePage }: PatientNavbarProps) => {
               title="Go to Profile"
             >
               <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-primary shrink-0">
-                <img
-                  className="w-full h-full object-cover"
-                  alt="User avatar"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuChyJbiyPfsDfDICSP9EQpQ8xiACr-qDj8oMdPFQJ66o-FT-lsIsbrc5AB2MiOyGMwdToeG1GWRvfI0fc9QqLg4WayK8_M0W93MWQDK8semZzAhp27x4cqqMnmtt5dEacY4DkPYSjk6qJRa7Sn8VBla5E7RJwTAaMkwcYXejeI7NnndBQnA1qG7YCs8zupCop2nK_V5hFl_6rwNOSV7KDzUdaxMU7ln-CJKgIjNXStTdvy4LpFEj-gxUIIghQIEE6o5Zg5EPKA7sQ"
-                />
+                <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                  {user?.full_name?.charAt(0) || "U"}
+                </div>
               </div>
               <div className="hidden sm:block text-left">
-                <p className="text-xs text-on-surface font-semibold">{user?.full_name}</p>
+                <p className="text-xs text-on-surface font-semibold">
+                  {user?.full_name}
+                </p>
                 <p className="text-[10px] text-on-surface-variant">Patient</p>
               </div>
             </Link>
@@ -89,7 +92,7 @@ const PatientNavbar = ({ activePage }: PatientNavbarProps) => {
         </div>
       </nav>
     </header>
-  )
-}
+  );
+};
 
-export default PatientNavbar
+export default PatientNavbar;
