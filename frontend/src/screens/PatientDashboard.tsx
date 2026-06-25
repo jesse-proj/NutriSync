@@ -34,6 +34,7 @@ interface Targets {
 
 interface FoodLog {
   id: number;
+  name: string;
   description: string;
   sodium_mg: number;
   carbs_g: number;
@@ -107,7 +108,8 @@ const MealCard = ({ log, isExpanded, onToggle }: { log: FoodLog; isExpanded: boo
         </div>
         <div className="flex flex-col justify-between py-1 flex-grow min-w-0">
           <div>
-            <p className={`text-sm font-bold text-on-surface ${isExpanded ? '' : 'line-clamp-1'}`}>{log.description}</p>
+            <p className={`text-sm font-bold text-on-surface ${isExpanded ? '' : 'line-clamp-1'}`}>{log.name}</p>
+            <p className={`text-xs text-on-surface-variant ${isExpanded ? '' : 'line-clamp-1'}`}>{log.description}</p>
             <p className="text-xs text-on-surface-variant font-medium mt-0.5">
               {getMealPeriod(log.logged_at)} • {formatLogTime(log.logged_at)}
             </p>
@@ -281,26 +283,15 @@ const PatientDashboard = () => {
 
       const formData = new FormData()
       formData.append('file', file)
-
       try {
-        const token = localStorage.getItem('token')
-        const response = await fetch('http://127.0.0.1:8000/api/food/analyze-photo', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
+        const analysisData = await apiFetch('/api/food/analyze-photo', {
           body: formData
         })
-        if (response.ok) {
-          const analysisData = await response.json()
-          setScannedFoodData(analysisData)
-          setShowFoodConfirmation(true)
-        } else {
-          alert("Failed to analyze image. Please try again.")
-        }
-      } catch (e) {
-        console.error("Image upload error:", e)
-        alert("Error uploading image")
+        setScannedFoodData(analysisData)
+        setShowFoodConfirmation(true)
+      } catch (e: any) {
+        console.error("Failed to analyze food photo", e)
+        alert(e.message || "Failed to analyze food photo")
       } finally {
         setIsUploading(false)
         if (fileInputRef.current) fileInputRef.current.value = ''
@@ -312,22 +303,16 @@ const PatientDashboard = () => {
     if (!scannedFoodData) return
     
     try {
-      const token = localStorage.getItem('token')
-      await fetch('http://127.0.0.1:8000/api/food/log', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(scannedFoodData)
+      await apiFetch('/api/food/log', {
+        json: scannedFoodData
       })
       
       setShowFoodConfirmation(false)
       setScannedFoodData(null)
       await fetchDashboardData()
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error logging food:", e)
-      alert("Error saving food log")
+      alert(e.message || "Error saving food log")
     }
   }
 
@@ -381,7 +366,7 @@ const PatientDashboard = () => {
             <h2 className="text-lg font-bold text-on-surface mb-4">Confirm Food Log</h2>
             <div className="space-y-3 mb-6">
               <div className="p-4 bg-surface-container rounded-lg">
-                <p className="text-sm font-semibold text-on-surface mb-1">Food Description</p>
+                <p className="text-lg font-bold text-on-surface">{scannedFoodData.name}</p>
                 <p className="text-sm text-on-surface-variant">{scannedFoodData.description}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">

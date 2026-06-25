@@ -15,13 +15,14 @@ import { useAuth } from '../context/AuthContext'
 
 interface FoodLog {
   id: number;
+  name: string;
   description: string;
   sodium_mg: number;
   carbs_g: number;
   calories_kcal: number;
-  potassium_mg?: number;
-  protein_g?: number;
-  fat_g?: number;
+  potassium_mg: number;
+  protein_g: number;
+  fat_g: number;
   logged_at: string;
 }
 

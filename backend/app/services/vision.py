@@ -38,10 +38,10 @@ class GroqVisionProvider:
 
         return result, "image/jpeg"
 
-    def analyze(self, image_bytes: bytes, mime_type: str = "image/jpeg") -> list[dict]:
+    def analyze(self, image_bytes: bytes, mime_type: str = "image/jpeg") -> dict:
         """
-        Analyze a food image and return a list of food segments with nutritional info.
-        Each segment: {"name": str, "nutritional_info": {"calories": float, "macronutrients": {"carbohydrates": float, "proteins": float, "fat": float}, "micronutrients": {"sodium": float, "potassium": float}}}
+        Analyze a food image and return a JSON object with the dish name and a description.
+        Example: {"name": "Sinigang", "description": "1 bowl of pork sinigang, 1 cup of white rice"}
         """
         image_bytes, mime_type = self.compress_image(image_bytes)
         b64_image = base64.b64encode(image_bytes).decode("utf-8")
@@ -55,10 +55,11 @@ class GroqVisionProvider:
                         {
                             "type": "text",
                             "text": (
-                                "Analyze this food image. Identify each dish/ingredient and estimate its nutritional content.\n"
-                                "Return a JSON array of objects with this structure:\n"
-                                '[{"name": "1 bowl of pork sinigang", "nutritional_info": {"calories": 350, "macronutrients": {"carbohydrates": 45, "proteins": 25, "fat": 12}, "micronutrients": {"sodium": 800, "potassium": 600}}]\n'
-                                "Return ONLY the JSON array, no markdown, no explanations."
+                                "Analyze this food image. Identify the main dish and its ingredients/portions.\n"
+                                "Return a JSON object with two keys: 'name' and 'description'.\n"
+                                "'name' should be a short title for the dish (e.g. 'Sinigang').\n"
+                                "'description' should be a detailed, comma-separated list of items (e.g. '1 bowl of pork sinigang, 1 cup of white rice').\n"
+                                "Return ONLY the JSON object, no explanations or markdown."
                             ),
                         },
                         {
@@ -71,11 +72,10 @@ class GroqVisionProvider:
                 }
             ],
             temperature=0.0,
-            max_tokens=512,
+            max_tokens=256,
         )
 
         raw = response.choices[0].message.content.strip()
-        # Strip markdown code fences if present
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
             if raw.endswith("```"):

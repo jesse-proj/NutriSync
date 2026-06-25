@@ -8,14 +8,15 @@ export async function apiFetch<T = any>(endpoint: string, options: FetchOptions 
   const { json, headers, ...customConfig } = options;
   const token = localStorage.getItem('token');
 
-  // Set default Headers
+  // Set default Headers (Content-Type will be omitted if body is FormData)
+  const isFormData = customConfig.body instanceof FormData;
   const defaultHeaders: HeadersInit = {
-    'Content-Type': 'application/json',
+    ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
   const config: RequestInit = {
-    method: json ? 'POST' : 'GET',
+    method: json ? 'POST' : (customConfig.body ? 'POST' : 'GET'),
     headers: {
       ...defaultHeaders,
       ...headers,

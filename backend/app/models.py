@@ -44,6 +44,7 @@ class FoodLogs(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     patient_id: int = Field(foreign_key="users.id", index=True)
     image_url: Optional[str] = Field(default=None)
+    name: str = Field(default="Unknown Meal")
     description: str = Field(nullable=False)
     sodium_mg: float = Field(default=0.0)
     carbs_g: float = Field(default=0.0)
