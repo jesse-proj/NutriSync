@@ -1,32 +1,62 @@
-import { useState } from 'react'
-import {
-  Edit,
-  CheckCircle,
-  Sparkles
-} from 'lucide-react'
-import { ScrollArea, ScrollBar } from '../components/ui/scroll-area'
-import Footer from '../components/Footer'
-import PatientNavbar from '../components/PatientNavbar'
-import { Button } from '@/components/ui/button'
+import { useState, useEffect } from "react";
+import { Edit, CheckCircle, Sparkles } from "lucide-react";
+import { ScrollArea, ScrollBar } from "../components/ui/scroll-area";
+import Footer from "../components/Footer";
+import PatientNavbar from "../components/PatientNavbar";
+import { Button } from "@/components/ui/button";
+import { apiFetch } from "../api/client";
 
 // ponytail: Goals.tsx uses simple React state and inline Tailwind styles for custom progress/charts
 
 const Goals = () => {
-
-  // Dynamic goals state
-  const [weight, setWeight] = useState(74.5)
-  const sodiumTarget = 1500
-  const sodiumConsumed = 1120
-  const walkingTarget = 5.0
-  const walkingCompleted = 4.2
+  const [weight, setWeight] = useState<number | null>(null);
+  const [sodiumConsumed, setSodiumConsumed] = useState(0);
+  const [sodiumTarget] = useState(1500);
+  const [walkingTarget] = useState(5.0);
+  const [walkingCompleted, setWalkingCompleted] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   // Checklist state
-  const [bpChecked, setBpChecked] = useState(true)
-  const [fiberChecked, setFiberChecked] = useState(false)
-  const [fluidChecked, setFluidChecked] = useState(true)
+  const [bpChecked, setBpChecked] = useState(true);
+  const [fiberChecked, setFiberChecked] = useState(false);
+  const [fluidChecked, setFluidChecked] = useState(true);
 
-  const sodiumPct = Math.min(100, Math.round((sodiumConsumed / sodiumTarget) * 100))
-  const walkingPct = Math.min(100, Math.round((walkingCompleted / walkingTarget) * 100))
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const logs = await apiFetch<
+          { calories_kcal: number; sodium_mg: number; logged_at: string }[]
+        >("/api/patients/logs?limit=30");
+        if (logs && logs.length > 0) {
+          const totalSodium = logs.reduce(
+            (sum, log) => sum + (log.sodium_mg || 0),
+            0,
+          );
+          setSodiumConsumed(Math.round(totalSodium));
+          // Derive a walking estimate from calorie burn (very rough: 1km ≈ 50kcal)
+          const totalCalories = logs.reduce(
+            (sum, log) => sum + (log.calories_kcal || 0),
+            0,
+          );
+          setWalkingCompleted(Math.round((totalCalories / 50) * 10) / 10);
+        }
+      } catch (e) {
+        console.error("Error fetching goals data:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const sodiumPct = Math.min(
+    100,
+    Math.round((sodiumConsumed / sodiumTarget) * 100),
+  );
+  const walkingPct = Math.min(
+    100,
+    Math.round((walkingCompleted / walkingTarget) * 100),
+  );
 
   return (
     <div className="min-h-screen bg-background text-on-surface flex flex-col font-sans relative">
@@ -38,14 +68,21 @@ const Goals = () => {
           {/* Header Section */}
           <div className="flex justify-between items-end mb-8">
             <div className="text-left">
-              <h1 className="text-3xl font-bold text-on-surface tracking-tight">Health Goals</h1>
-              <p className="text-sm text-on-surface-variant mt-1.5">Track and adjust your clinical objectives</p>
+              <h1 className="text-3xl font-bold text-on-surface tracking-tight">
+                Health Goals
+              </h1>
+              <p className="text-sm text-on-surface-variant mt-1.5">
+                Track and adjust your clinical objectives
+              </p>
             </div>
             <Button
               onClick={() => {
-                const newWeight = prompt("Enter new weight (kg):", String(weight))
+                const newWeight = prompt(
+                  "Enter new weight (kg:",
+                  String(weight ?? ""),
+                );
                 if (newWeight && !isNaN(Number(newWeight))) {
-                  setWeight(Number(newWeight))
+                  setWeight(Number(newWeight));
                 }
               }}
               className="flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-all cursor-pointer"
@@ -61,14 +98,20 @@ const Goals = () => {
             <div className="lg:col-span-4 flex flex-col">
               <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/30 flex flex-col h-full text-left">
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-bold text-on-surface">Current Weight</h3>
+                  <h3 className="text-lg font-bold text-on-surface">
+                    Current Weight
+                  </h3>
                   <span className="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full text-xs font-bold">
-                    -1.2kg this month
+                    {weight !== null ? `${weight} kg` : "No data"}
                   </span>
                 </div>
                 <div className="flex items-baseline gap-1 mb-8">
-                  <span className="text-4xl font-extrabold text-primary tracking-tight">{weight}</span>
-                  <span className="text-sm text-on-surface-variant font-medium">kg</span>
+                  <span className="text-4xl font-extrabold text-primary tracking-tight">
+                    {loading ? "—" : weight !== null ? weight : "—"}
+                  </span>
+                  <span className="text-sm text-on-surface-variant font-medium">
+                    kg
+                  </span>
                 </div>
 
                 {/* Simulated Chart Bars */}
@@ -105,18 +148,29 @@ const Goals = () => {
                   </div>
                   <span className="text-secondary font-semibold text-sm flex items-center gap-1">
                     <CheckCircle className="h-4 w-4" />
-                    Under Limit
+                    {sodiumPct <= 100 ? "Under Limit" : "Exceeded"}
                   </span>
                 </div>
-                <h3 className="text-xl font-bold text-on-surface">Daily Sodium</h3>
-                <p className="text-sm text-on-surface-variant mt-1 mb-8">Goal: &lt; {sodiumTarget}mg</p>
+                <h3 className="text-xl font-bold text-on-surface">
+                  Daily Sodium
+                </h3>
+                <p className="text-sm text-on-surface-variant mt-1 mb-8">
+                  Goal: &lt; {sodiumTarget}mg
+                </p>
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-on-surface">{sodiumConsumed}mg consumed</span>
-                    <span className="text-on-surface-variant">{sodiumPct}%</span>
+                    <span className="text-on-surface">
+                      {sodiumConsumed}mg consumed
+                    </span>
+                    <span className="text-on-surface-variant">
+                      {sodiumPct}%
+                    </span>
                   </div>
                   <div className="w-full h-3 bg-surface-container rounded-full overflow-hidden">
-                    <div className="h-full bg-secondary rounded-full transition-all duration-500" style={{ width: `${sodiumPct}%` }}></div>
+                    <div
+                      className="h-full bg-secondary rounded-full transition-all duration-500"
+                      style={{ width: `${sodiumPct}%` }}
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -127,17 +181,30 @@ const Goals = () => {
                   <div className="p-3 bg-surface-container-highest rounded-xl text-primary font-bold text-xs uppercase">
                     Activity
                   </div>
-                  <span className="text-primary font-semibold text-sm">{walkingPct}% Achieved</span>
+                  <span className="text-primary font-semibold text-sm">
+                    {walkingPct}% Achieved
+                  </span>
                 </div>
-                <h3 className="text-xl font-bold text-on-surface">Walking Distance</h3>
-                <p className="text-sm text-on-surface-variant mt-1 mb-8">Goal: {walkingTarget} km</p>
+                <h3 className="text-xl font-bold text-on-surface">
+                  Walking Distance
+                </h3>
+                <p className="text-sm text-on-surface-variant mt-1 mb-8">
+                  Goal: {walkingTarget} km
+                </p>
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-on-surface">{walkingCompleted} km completed</span>
-                    <span className="text-on-surface-variant">{walkingPct}%</span>
+                    <span className="text-on-surface">
+                      {walkingCompleted} km completed
+                    </span>
+                    <span className="text-on-surface-variant">
+                      {walkingPct}%
+                    </span>
                   </div>
                   <div className="w-full h-3 bg-surface-container rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${walkingPct}%` }}></div>
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-500"
+                      style={{ width: `${walkingPct}%` }}
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -148,17 +215,15 @@ const Goals = () => {
               {/* NutriGabay Card */}
               <div className="bg-primary text-on-primary rounded-2xl p-6 shadow-md relative overflow-hidden">
                 <div className="flex gap-4 items-start relative z-10">
-                  <div className="shrink-0 w-16 h-16 rounded-full overflow-hidden border-2 border-white/20 bg-white">
-                    <img
-                      className="w-full h-full object-cover"
-                      alt="NutriGabay avatar"
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqIo1UVjrKHPqDcvNGfV3pEkK11F1JOD6UdousFNXdxkBwO1dgu5slqZqYTdXAi8U_kAzMUWVBex9qtFRN76B9qlEk3iGbl3aYy-hNpVTau_nz13c9QGki4hh73yC2cp4KdrsWxOh_9mK0WIR9-xFnEYkEZvXNt6tiB_PBUKT0HTbQxlvEDa0pTtNQuY2M4cUDRd36-TZtRNBrEqzKsVubnvP2NYXipYL-t6BjmvPcliVXsGMEut7q5yERYIVPD7xTXgFBJNpkAQ"
-                    />
+                  <div className="shrink-0 w-16 h-16 rounded-full overflow-hidden border-2 border-white/20 bg-white flex items-center justify-center text-primary font-bold text-lg">
+                    🤖
                   </div>
                   <div className="space-y-1">
                     <h4 className="text-lg font-bold">NutriGabay</h4>
                     <p className="text-xs opacity-90 leading-relaxed">
-                      "You're doing great, Juan! Your sodium intake is consistently within range. Keep up the fiber goals to maintain heart health."
+                      {sodiumPct <= 100
+                        ? "You're doing great! Your sodium intake is within range. Keep up the fiber goals to maintain heart health."
+                        : "Your sodium is above target. Consider reducing high-sodium meals and drink more water."}
                     </p>
                   </div>
                 </div>
@@ -169,22 +234,32 @@ const Goals = () => {
 
               {/* Weekly Checklist */}
               <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/30">
-                <h3 className="text-lg font-bold text-on-surface mb-6">Weekly Checklist</h3>
+                <h3 className="text-lg font-bold text-on-surface mb-6">
+                  Weekly Checklist
+                </h3>
                 <div className="flex flex-col gap-4">
                   {/* BP checklist item */}
                   <div
                     onClick={() => setBpChecked(!bpChecked)}
                     className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer"
                   >
-                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${bpChecked ? 'bg-primary border-primary text-white' : 'border-outline-variant'}`}>
+                    <div
+                      className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${bpChecked ? "bg-primary border-primary text-white" : "border-outline-variant"}`}
+                    >
                       {bpChecked && <CheckCircle className="h-4.5 w-4.5" />}
                     </div>
                     <div className="flex-grow">
-                      <p className="text-sm font-bold text-on-surface">BP Consistency</p>
-                      <p className="text-xs text-on-surface-variant">Measured twice daily</p>
+                      <p className="text-sm font-bold text-on-surface">
+                        BP Consistency
+                      </p>
+                      <p className="text-xs text-on-surface-variant">
+                        Measured twice daily
+                      </p>
                     </div>
-                    <span className={`text-xs font-bold ${bpChecked ? 'text-secondary' : 'text-on-surface-variant'}`}>
-                      {bpChecked ? 'Done' : 'Pending'}
+                    <span
+                      className={`text-xs font-bold ${bpChecked ? "text-secondary" : "text-on-surface-variant"}`}
+                    >
+                      {bpChecked ? "Done" : "Pending"}
                     </span>
                   </div>
 
@@ -193,15 +268,23 @@ const Goals = () => {
                     onClick={() => setFiberChecked(!fiberChecked)}
                     className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer"
                   >
-                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${fiberChecked ? 'bg-primary border-primary text-white' : 'border-outline-variant'}`}>
+                    <div
+                      className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${fiberChecked ? "bg-primary border-primary text-white" : "border-outline-variant"}`}
+                    >
                       {fiberChecked && <CheckCircle className="h-4.5 w-4.5" />}
                     </div>
                     <div className="flex-grow">
-                      <p className="text-sm font-bold text-on-surface">Fiber Goals</p>
-                      <p className="text-xs text-on-surface-variant">25g daily intake</p>
+                      <p className="text-sm font-bold text-on-surface">
+                        Fiber Goals
+                      </p>
+                      <p className="text-xs text-on-surface-variant">
+                        25g daily intake
+                      </p>
                     </div>
-                    <span className={`text-xs font-bold ${fiberChecked ? 'text-secondary' : 'text-on-surface-variant'}`}>
-                      {fiberChecked ? 'Done' : '4/7 days'}
+                    <span
+                      className={`text-xs font-bold ${fiberChecked ? "text-secondary" : "text-on-surface-variant"}`}
+                    >
+                      {fiberChecked ? "Done" : "4/7 days"}
                     </span>
                   </div>
 
@@ -210,15 +293,23 @@ const Goals = () => {
                     onClick={() => setFluidChecked(!fluidChecked)}
                     className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer"
                   >
-                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${fluidChecked ? 'bg-primary border-primary text-white' : 'border-outline-variant'}`}>
+                    <div
+                      className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${fluidChecked ? "bg-primary border-primary text-white" : "border-outline-variant"}`}
+                    >
                       {fluidChecked && <CheckCircle className="h-4.5 w-4.5" />}
                     </div>
                     <div className="flex-grow">
-                      <p className="text-sm font-bold text-on-surface">Fluid Intake</p>
-                      <p className="text-xs text-on-surface-variant">2L baseline</p>
+                      <p className="text-sm font-bold text-on-surface">
+                        Fluid Intake
+                      </p>
+                      <p className="text-xs text-on-surface-variant">
+                        2L baseline
+                      </p>
                     </div>
-                    <span className={`text-xs font-bold ${fluidChecked ? 'text-secondary' : 'text-on-surface-variant'}`}>
-                      {fluidChecked ? 'Done' : 'Pending'}
+                    <span
+                      className={`text-xs font-bold ${fluidChecked ? "text-secondary" : "text-on-surface-variant"}`}
+                    >
+                      {fluidChecked ? "Done" : "Pending"}
                     </span>
                   </div>
                 </div>
@@ -231,7 +322,7 @@ const Goals = () => {
         <ScrollBar orientation="vertical" />
       </ScrollArea>
     </div>
-  )
-}
+  );
+};
 
-export default Goals
+export default Goals;

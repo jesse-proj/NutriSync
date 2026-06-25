@@ -9,8 +9,7 @@ import {
   Search,
   Loader2,
   ExternalLink,
-  ShieldAlert,
-  Clock,
+  ChevronLeft,
   User
 } from 'lucide-react'
 
@@ -59,6 +58,13 @@ export function ClinicianChatHub({
     }
   }
 
+  const handleBackToList = () => {
+    setActivePatient(null)
+    if (onActivePatientChange) {
+      onActivePatientChange(null)
+    }
+  }
+
   useEffect(() => {
     return () => {
       if (onActivePatientChange) {
@@ -66,14 +72,14 @@ export function ClinicianChatHub({
       }
     }
   }, [])
+
   const [messages, setMessages] = useState<Message[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [messageInput, setMessageInput] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Fetch chat history when active patient changes
   const fetchChatHistory = async (patientId: number) => {
     setLoadingHistory(true)
     try {
@@ -81,8 +87,6 @@ export function ClinicianChatHub({
       if (history) {
         setMessages(history)
       }
-      
-      // Mark all messages from this patient as read
       await apiFetch(`/api/chat/direct/read/${patientId}`, { method: 'PATCH' })
       setUnreadCounts(prev => ({ ...prev, [patientId]: 0 }))
     } catch (err) {
@@ -98,15 +102,12 @@ export function ClinicianChatHub({
     }
   }, [activePatient])
 
-  // Listen to incoming real-time socket messages for the active conversation
   useEffect(() => {
     if (!socket) return
 
     const handleSocketMessage = (event: MessageEvent) => {
       try {
         const msg = JSON.parse(event.data)
-        
-        // If the message belongs to our currently active patient conversation
         if (activePatient && (
           (msg.sender_id === activePatient.id && msg.receiver_id === currentUserId) ||
           (msg.sender_id === currentUserId && msg.receiver_id === activePatient.id)
@@ -115,8 +116,6 @@ export function ClinicianChatHub({
             if (prev.some(m => m.id === msg.id)) return prev
             return [...prev, msg]
           })
-
-          // Mark it as read immediately
           if (msg.sender_id === activePatient.id) {
             apiFetch(`/api/chat/direct/read/${activePatient.id}`, { method: 'PATCH' })
           }
@@ -132,20 +131,13 @@ export function ClinicianChatHub({
     }
   }, [socket, activePatient, currentUserId])
 
-  // Scroll to bottom of chat
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loadingHistory])
 
-  // Send message
   const handleSendMessage = () => {
     if (!messageInput.trim() || !activePatient || !socket) return
-
-    const payload = {
-      receiver_id: activePatient.id,
-      message: messageInput.trim()
-    }
-
+    const payload = { receiver_id: activePatient.id, message: messageInput.trim() }
     if (socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(payload))
       setMessageInput("")
@@ -154,17 +146,22 @@ export function ClinicianChatHub({
     }
   }
 
-  // Filter patients list by search query
   const filteredPatients = patients.filter(p =>
     p.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.email.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   return (
-    <div className="h-[calc(100vh-12rem)] min-h-[450px] bg-white border border-outline-variant rounded-2xl shadow-sm flex overflow-hidden animate-in fade-in duration-300">
-      {/* Left Sidebar: Patients Contact List */}
-      <div className="w-80 border-r border-outline-variant flex flex-col shrink-0 bg-surface-bright/20">
-        {/* Contact List Header / Search */}
+    <div className="h-[calc(100vh-12rem)] min-h-[500px] bg-white border border-outline-variant rounded-2xl shadow-sm flex overflow-hidden animate-in fade-in duration-300">
+
+      {/* ── Left Sidebar: Contact list ───────────────────────────────────── */}
+      {/* On mobile: visible only when NO chat is open. On lg+: always visible. */}
+      <div className={`
+        flex-col shrink-0 border-r border-outline-variant bg-surface-bright/20
+        w-full lg:w-80
+        ${activePatient ? 'hidden lg:flex' : 'flex'}
+      `}>
+        {/* Header / Search */}
         <div className="p-4 border-b border-outline-variant flex flex-col gap-3">
           <h2 className="text-base font-bold text-on-surface flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-primary" />
@@ -182,7 +179,7 @@ export function ClinicianChatHub({
           </div>
         </div>
 
-        {/* Scrollable Contacts List */}
+        {/* Scrollable Contacts */}
         <ScrollArea className="flex-grow">
           <div className="p-2 space-y-1">
             {filteredPatients.length === 0 ? (
@@ -201,26 +198,20 @@ export function ClinicianChatHub({
                   <button
                     key={patient.id}
                     onClick={() => handleSelectActivePatient(patient)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all border-none cursor-pointer ${
-                      isSelected
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all border-none cursor-pointer ${isSelected
                         ? 'bg-primary/10 text-primary font-bold'
                         : 'bg-transparent text-on-surface hover:bg-slate-100/60'
-                    }`}
+                      }`}
                   >
-                    {/* Avatar */}
                     <div className="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center text-xs font-bold text-primary shrink-0 border border-primary/10">
                       {initials}
                     </div>
-                    
-                    {/* Name & Email */}
                     <div className="flex-grow min-w-0">
-                      <p className="text-xs truncate leading-snug">{patient.full_name}</p>
+                      <p className="text-xs truncate leading-snug font-semibold">{patient.full_name}</p>
                       <p className="text-[10px] text-on-surface-variant font-medium truncate mt-0.5">{patient.email}</p>
                     </div>
-
-                    {/* Unread Badge */}
                     {unreadCount > 0 && (
-                      <span className="bg-primary text-white text-[9px] font-black h-4.5 min-w-4.5 px-1 rounded-full flex items-center justify-center shrink-0">
+                      <span className="bg-primary text-white text-[9px] font-black min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center shrink-0">
                         {unreadCount}
                       </span>
                     )}
@@ -233,13 +224,26 @@ export function ClinicianChatHub({
         </ScrollArea>
       </div>
 
-      {/* Right Area: Active Chat Conversation */}
-      <div className="flex-grow flex flex-col bg-background">
+      {/* ── Right Area: Active Chat ───────────────────────────────────────── */}
+      {/* On mobile: visible only when a chat IS open. On lg+: always visible. */}
+      <div className={`
+        flex-grow flex-col bg-background
+        ${activePatient ? 'flex' : 'hidden lg:flex'}
+      `}>
         {activePatient ? (
           <>
             {/* Conversation Header */}
-            <div className="px-6 py-3 border-b border-outline-variant bg-white flex justify-between items-center h-14 flex-shrink-0">
-              <div className="flex items-center gap-3 min-w-0">
+            <div className="px-4 py-3 border-b border-outline-variant bg-white flex justify-between items-center h-14 flex-shrink-0 gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                {/* Back button – mobile only */}
+                <button
+                  onClick={handleBackToList}
+                  className="lg:hidden p-1.5 rounded-lg hover:bg-slate-100 text-on-surface-variant transition-colors shrink-0"
+                  aria-label="Back to contacts"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+
                 <div className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center text-primary shrink-0 font-extrabold text-xs">
                   {activePatient.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                 </div>
@@ -248,22 +252,22 @@ export function ClinicianChatHub({
                   <p className="text-[9px] text-on-surface-variant truncate font-medium">{activePatient.email}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  onClick={() => onSelectPatient(activePatient)}
-                  className="text-secondary hover:bg-secondary/10 font-bold text-[10px] flex items-center gap-1 h-8 rounded-lg px-2.5"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  View Medical Profile
-                </Button>
-              </div>
+
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={() => onSelectPatient(activePatient)}
+                className="text-secondary hover:bg-secondary/10 font-bold text-[10px] flex items-center gap-1 h-8 rounded-lg px-2.5 shrink-0"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">View Medical Profile</span>
+                <span className="sm:hidden">Profile</span>
+              </Button>
             </div>
 
-            {/* Scrollable Messages Area */}
+            {/* Scrollable Messages */}
             <ScrollArea className="flex-grow bg-slate-50/40 w-full overflow-hidden">
-              <div className="p-6 space-y-4 flex flex-col">
+              <div className="p-4 sm:p-6 space-y-4 flex flex-col">
                 {loadingHistory ? (
                   <div className="py-20 text-center text-xs text-on-surface-variant flex flex-col items-center justify-center gap-2">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -276,7 +280,7 @@ export function ClinicianChatHub({
                     </div>
                     <div>
                       <p className="font-bold text-on-surface">Secure Consultation Channel</p>
-                      <p className="mt-1 leading-relaxed">No chat records yet. Send a message to start remote consultation and diet monitoring with {activePatient.full_name}.</p>
+                      <p className="mt-1 leading-relaxed">No chat records yet. Send a message to start remote consultation with {activePatient.full_name}.</p>
                     </div>
                   </div>
                 ) : (
@@ -286,14 +290,13 @@ export function ClinicianChatHub({
                       return (
                         <div
                           key={msg.id || idx}
-                          className={`p-3 rounded-2xl max-w-[80%] text-xs leading-relaxed shadow-xs flex flex-col ${
-                            isCurrentUser
+                          className={`p-3 rounded-2xl max-w-[85%] sm:max-w-[75%] text-xs leading-relaxed shadow-xs flex flex-col ${isCurrentUser
                               ? 'bg-primary text-white self-end rounded-tr-none'
                               : 'bg-white text-on-surface self-start rounded-tl-none border border-outline-variant/50'
-                          }`}
+                            }`}
                         >
                           <p className="whitespace-pre-wrap">{msg.message}</p>
-                          <span className={`text-[8px] mt-1 block text-right font-medium opacity-75`}>
+                          <span className="text-[8px] mt-1 block text-right font-medium opacity-75">
                             {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
@@ -307,7 +310,7 @@ export function ClinicianChatHub({
             </ScrollArea>
 
             {/* Chat Input Footer */}
-            <div className="p-4 border-t border-outline-variant bg-white flex gap-2 h-16 items-center flex-shrink-0">
+            <div className="p-3 sm:p-4 border-t border-outline-variant bg-white flex gap-2 items-center flex-shrink-0">
               <Input
                 type="text"
                 placeholder={`Message ${activePatient.full_name.split(' ')[0]}...`}
@@ -327,14 +330,14 @@ export function ClinicianChatHub({
             </div>
           </>
         ) : (
-          /* Empty Chat Area State */
+          /* Empty State – visible on lg+ when no patient selected */
           <div className="flex-grow flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto">
             <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center text-primary border border-primary/10 mb-4">
               <MessageSquare className="h-7 w-7" />
             </div>
             <h3 className="font-bold text-sm text-on-surface">Secure Direct Messenger</h3>
             <p className="text-xs text-on-surface-variant mt-2 leading-relaxed">
-              Consult with your cardiac or diabetic patients instantly. Choose an active patient profile from the sidebar list to review messages and coordinate dietary interventions.
+              Consult with your cardiac or diabetic patients instantly. Choose a patient from the list to review messages and coordinate dietary interventions.
             </p>
           </div>
         )}

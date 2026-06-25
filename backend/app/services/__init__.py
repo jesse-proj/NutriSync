@@ -1,8 +1,9 @@
-from .vision import GroqVisionProvider, get_vision_provider
+from .ai_summary import generate_nutrition_summary
 from .nutrition import EdamamNutritionProvider
+from .vision import GroqVisionProvider
 
 __all__ = [
     "GroqVisionProvider",
-    "get_vision_provider",
     "EdamamNutritionProvider",
+    "generate_nutrition_summary",
 ]
