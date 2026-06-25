@@ -10,6 +10,8 @@ import PatientNavbar from '../components/PatientNavbar'
 import { Button } from '@/components/ui/button'
 import { apiFetch } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 // ponytail: Reports.tsx uses simple native SVG and Tailwind divs for charts to keep it minimal and dependency-free
 
@@ -27,9 +29,10 @@ interface FoodLog {
 }
 
 const Reports = () => {
-  const { user } = useAuth()
+  const { } = useAuth()
   const [logs, setLogs] = useState<FoodLog[]>([])
   const [loading, setLoading] = useState(true)
+  const [isExporting, setIsExporting] = useState(false)
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -88,6 +91,75 @@ const Reports = () => {
     return weeklyData
   }
 
+  const handleExportPDF = async () => {
+    setIsExporting(true)
+    try {
+      // 1. Fetch AI Summary
+      let aiSummary = "No summary available."
+      try {
+        const summaryRes = await apiFetch('/api/patients/reports/summary?limit=30')
+        if (summaryRes?.summary) {
+          aiSummary = summaryRes.summary
+        }
+      } catch (err) {
+        console.warn("Could not fetch AI summary, continuing without it.", err)
+      }
+
+      // 2. Initialize PDF
+      const doc = new jsPDF()
+
+      // Header
+      doc.setFontSize(20)
+      doc.text("Nutritional Report", 14, 22)
+      doc.setFontSize(10)
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30)
+
+      // AI Summary
+      doc.setFontSize(12)
+      doc.setFont("helvetica", "bold")
+      doc.text("AI Nutritional Summary", 14, 40)
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(10)
+      const splitSummary = doc.splitTextToSize(aiSummary, 180)
+      doc.text(splitSummary, 14, 46)
+
+      // Stats
+      const totalCalories = logs.reduce((sum, log) => sum + (log.calories_kcal || 0), 0)
+      const totalSodium = logs.reduce((sum, log) => sum + (log.sodium_mg || 0), 0)
+      
+      let nextY = 46 + (splitSummary.length * 5) + 10
+      doc.setFontSize(12)
+      doc.setFont("helvetica", "bold")
+      doc.text("Total Stats (Last 30 Logs)", 14, nextY)
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(10)
+      doc.text(`Calories: ${totalCalories.toFixed(2)} kcal`, 14, nextY + 6)
+      doc.text(`Sodium: ${totalSodium.toFixed(2)} mg`, 14, nextY + 12)
+
+      // Table of Logs
+      nextY += 20
+      const tableData = logs.map(log => [
+        new Date(log.logged_at).toLocaleString(),
+        log.name,
+        `${Number(log.calories_kcal || 0).toFixed(2)} kcal`,
+        `${Number(log.sodium_mg || 0).toFixed(2)} mg`,
+        `${Number(log.potassium_mg || 0).toFixed(2)} mg`
+      ])
+
+      autoTable(doc, {
+        startY: nextY,
+        head: [['Date/Time', 'Meal', 'Calories', 'Sodium', 'Potassium']],
+        body: tableData,
+      })
+
+      doc.save('Nutritional_Report.pdf')
+    } catch (e) {
+      console.error("Export failed:", e)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   const weeklyData = getWeeklyData()
 
   if (loading) {
@@ -114,9 +186,13 @@ const Reports = () => {
               <h1 className="text-3xl font-bold text-on-surface tracking-tight">Nutritional Analysis</h1>
               <p className="text-sm text-on-surface-variant mt-1.5">Reviewing your health trends for the past week</p>
             </div>
-            <Button className="bg-primary text-on-primary px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg hover:bg-primary-container transition-all">
+            <Button 
+              onClick={handleExportPDF} 
+              disabled={isExporting}
+              className="bg-primary text-on-primary px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg hover:bg-primary-container transition-all"
+            >
               <Download className="h-4 w-4" />
-              Export Full Report
+              {isExporting ? "Generating..." : "Export Full Report"}
             </Button>
           </div>
 
