@@ -13,7 +13,11 @@ import {
   Send,
   CheckCircle,
   ArrowRight,
+  AlertTriangle,
+  Utensils,
+  Info,
 } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ScrollArea, ScrollBar } from "../components/ui/scroll-area";
@@ -52,24 +56,14 @@ interface Message {
 const PatientDashboard = () => {
   const { user } = useAuth();
 
-<<<<<<< HEAD
+
   // State for dashboard metrics
   const [targets, setTargets] = useState<Targets>({ sodium_mg: 2000, carbs_g: 250, calories_kcal: 2000, potassium_mg: 0 })
   const [logs, setLogs] = useState<FoodLog[]>([])
   const [expandedLogId, setExpandedLogId] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const mealsPerPage = 4
-=======
-  // Dashboard metrics
-  const [targets, setTargets] = useState<Targets>({
-    sodium_mg: 2000,
-    carbs_g: 250,
-    calories_kcal: 2000,
-    potassium_mg: 0,
-  });
-  const [logs, setLogs] = useState<FoodLog[]>([]);
-  const [expandedLogId, setExpandedLogId] = useState<number | null>(null);
->>>>>>> 385a554898379a61a26e2bfbcadc50a748380a12
+
 
   // Chatbot state
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -95,6 +89,31 @@ const PatientDashboard = () => {
   const [glassesHydrated, setGlassesHydrated] = useState(() =>
     Number(localStorage.getItem("glasses_hydrated") || 3),
   );
+
+  const consumedCalories = logs.reduce((sum, log) => sum + log.calories_kcal, 0)
+  const consumedSodium = logs.reduce((sum, log) => sum + log.sodium_mg, 0)
+  const consumedCarbs = logs.reduce((sum, log) => sum + log.carbs_g, 0)
+  const consumedProtein = logs.reduce((sum, log) => sum + (log.protein_g || 0), 0)
+  const consumedFat = logs.reduce((sum, log) => sum + (log.fat_g || 0), 0)
+
+  const targetProtein = Math.round((targets.calories_kcal * 0.20) / 4) || 120
+  const targetFat = Math.round((targets.calories_kcal * 0.30) / 9) || 70
+
+  const carbsPct = Math.min(100, (consumedCarbs / (targets.carbs_g || 1)) * 100)
+  const proteinPct = Math.min(100, (consumedProtein / (targetProtein || 1)) * 100)
+  const fatPct = Math.min(100, (consumedFat / (targetFat || 1)) * 100)
+
+  const caloriesLeft = Math.max(0, targets.calories_kcal - consumedCalories)
+  const isCalorieSurpassed = consumedCalories > targets.calories_kcal
+
+  const calorieProgressRatio = Math.min(1, consumedCalories / (targets.calories_kcal || 1))
+  const strokeDashoffset = 264 - (264 * calorieProgressRatio)
+
+  const isSodiumWarning = consumedSodium > targets.sodium_mg * 0.6
+  const highSodiumMeal = logs.find(log => log.sodium_mg > 400)
+  const sodiumAlertMessage = highSodiumMeal
+    ? `Your recent meal (${highSodiumMeal.description}) was high in sodium. Try drinking extra water this afternoon.`
+    : "Your meals logged today are within healthy sodium thresholds. Excellent choice!";
 
   // Fetch metrics and logs
   const fetchDashboardData = async () => {
@@ -425,7 +444,7 @@ const PatientDashboard = () => {
             </p>
           </div>
 
-<<<<<<< HEAD
+
           {/* Notification Alert Tab */}
           {consumedSodium >= targets.sodium_mg * 0.9 && (
             <Alert variant="destructive" className="mb-8 shadow-sm">
@@ -590,13 +609,7 @@ const PatientDashboard = () => {
 
                 </div>
               </div>
-=======
-          {/* Dashboard Grid: Main Content + Sidebar */}
-          <div className="grid grid-cols-12 gap-6">
-            {/* Main Content Area (Stats + Meals) */}
-            <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
-              <DashboardStats logs={logs} targets={targets} />
->>>>>>> 385a554898379a61a26e2bfbcadc50a748380a12
+
 
               {/* Recent Meals */}
               <div>
@@ -627,7 +640,7 @@ const PatientDashboard = () => {
                     </Button>
                   </div>
                 ) : (
-<<<<<<< HEAD
+
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                       {logs.slice((currentPage - 1) * mealsPerPage, currentPage * mealsPerPage).map(log => (
@@ -759,116 +772,16 @@ const PatientDashboard = () => {
                       </div>
                     </div>
 
-=======
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                    {logs.map((log) => (
-                      <MealCard
-                        key={log.id}
-                        log={log}
-                        isExpanded={expandedLogId === log.id}
-                        onToggle={() =>
-                          setExpandedLogId(
-                            expandedLogId === log.id ? null : log.id,
-                          )
-                        }
-                        apiUrl={API_URL}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
 
-            {/* Right Sidebar: Quick Actions + Reminders */}
-            <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
-              <div className="flex flex-col gap-3">
-                <Button
-                  onClick={handleOpenScanDialog}
-                  className="bg-primary text-on-primary h-14 rounded-2xl flex items-center justify-center gap-3 font-semibold text-sm shadow-lg shadow-primary/20 hover:bg-primary-container transition-all border-none cursor-pointer"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  Log a Meal with AI
-                </Button>
-                <Button
-                  onClick={() => setIsChatOpen(true)}
-                  className="bg-secondary text-on-secondary h-14 rounded-2xl flex items-center justify-center gap-3 font-semibold text-sm shadow-lg shadow-secondary/20 hover:bg-gray-500 hover:opacity-95 transition-all border-none cursor-pointer"
-                >
-                  <MessageSquare className="h-5 w-5" />
-                  Ask NutriGabay
-                </Button>
-              </div>
-
-              {/* Clinical Reminders */}
-              <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/30">
-                <div className="flex items-center gap-2 mb-6">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  <h3 className="text-lg font-bold text-on-surface">
-                    Clinical Reminders
-                  </h3>
-                </div>
-                <div className="space-y-6">
-                  <div className="flex gap-4 items-start">
-                    <div className="w-10 h-10 bg-primary-container text-on-primary-container rounded-xl flex items-center justify-center shrink-0">
-                      <Pill className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-grow">
-                      <p className="text-sm font-bold text-on-surface">
-                        Losartan (50mg)
-                      </p>
-                      <p className="text-xs text-on-surface-variant font-medium mt-0.5">
-                        Due: 8:00 PM tonight
-                      </p>
-                      <button
-                        onClick={toggleLosartan}
-                        className={`mt-3 text-xs font-semibold px-4 py-1.5 rounded-full border transition-all cursor-pointer ${losartanTaken ? "bg-green-100 border-green-300 text-green-700 font-bold flex items-center gap-1" : "bg-transparent border-primary text-primary hover:bg-primary-container"}`}
-                      >
-                        {losartanTaken ? (
-                          <>
-                            <CheckCircle className="h-3.5 w-3.5" />
-                            Taken
-                          </>
-                        ) : (
-                          "Mark Taken"
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex gap-4 items-start border-t border-outline-variant/30 pt-5">
-                    <div className="w-10 h-10 bg-secondary-container text-on-secondary-container rounded-xl flex items-center justify-center shrink-0">
-                      <Droplet className="h-5 w-5" />
-                    </div>
-                    <div className="flex-grow">
-                      <p className="text-sm font-bold text-on-surface">
-                        Hydration Goal
-                      </p>
-                      <p className="text-xs text-on-surface-variant font-medium mt-0.5">
-                        Drink {Math.max(0, 5 - glassesHydrated)} more glasses
-                        today
-                      </p>
-                      <div className="mt-3.5 flex gap-1.5">
-                        {[1, 2, 3, 4, 5].map((idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => updateWaterCount(idx)}
-                            className={`w-7 h-2 rounded-full transition-all cursor-pointer ${idx <= glassesHydrated ? "bg-secondary" : "bg-surface-container hover:bg-secondary/40"}`}
-                            title={`Log ${idx} glasses`}
-                          />
-                        ))}
-                      </div>
-                    </div>
->>>>>>> 385a554898379a61a26e2bfbcadc50a748380a12
                   </div>
                 </div>
               </div>
             </div>
-<<<<<<< HEAD
 
             </div>
 
 
 
-=======
->>>>>>> 385a554898379a61a26e2bfbcadc50a748380a12
           </div>
         </main>
 
