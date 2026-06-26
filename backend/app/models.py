@@ -78,12 +78,12 @@ class DietaryTargets(SQLModel, table=True):
         default=2000.0, description="Daily calorie limit"
     )
     potassium_mg: Optional[float] = Field(
-        default=None, description="Daily potassium limit in mg"
+        default=3500.0, description="Daily potassium limit in mg"
     )
     protein_g: Optional[float] = Field(
-        default=None, description="Daily protein limit in g"
+        default=120.0, description="Daily protein limit in g"
     )
-    fat_g: Optional[float] = Field(default=None, description="Daily fat limit in g")
+    fat_g: Optional[float] = Field(default=70.0, description="Daily fat limit in g")
     updated_at: datetime = Field(default_factory=utc_now)
 
 

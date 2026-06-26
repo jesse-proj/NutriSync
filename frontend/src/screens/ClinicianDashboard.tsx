@@ -41,6 +41,7 @@ import {
   LogOut,
   AlertCircle,
   MessageSquare,
+  Download,
 } from "lucide-react";
 import { ClinicianChatHub } from "./ClinicianChatHub";
 import PatientList from "../components/PatientList";
@@ -78,6 +79,8 @@ interface DietaryTargets {
   carbs_g: number;
   calories_kcal: number;
   potassium_mg: number;
+  protein_g?: number;
+  fat_g?: number;
 }
 
 const ClinicianDashboard = () => {
@@ -116,6 +119,7 @@ const ClinicianDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Chat
   const [unreadCounts, setUnreadCounts] = useState<Record<number, number>>({});
@@ -327,6 +331,98 @@ const ClinicianDashboard = () => {
   const handlePatientCreated = useCallback(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleExportPDF = async () => {
+    if (!selectedPatient) return;
+    setIsExporting(true);
+    try {
+      // Lazy-load jsPDF
+      const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable"),
+      ]);
+
+      // Initialize PDF
+      const doc = new jsPDF();
+
+      // Header
+      doc.setFontSize(20);
+      doc.text("Patient Health Summary", 14, 22);
+      doc.setFontSize(10);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+
+      // Patient Information
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Patient Information", 14, 40);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`Name: ${selectedPatient.full_name}`, 14, 46);
+      doc.text(`Email: ${selectedPatient.email}`, 14, 52);
+
+      // Dietary Targets
+      let nextY = 62;
+      if (patientTargets) {
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("Dietary Targets (Daily Goals)", 14, nextY);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        nextY += 8;
+        doc.text(`Calories: ${patientTargets.calories_kcal?.toFixed(0) || 0} kcal`, 14, nextY);
+        doc.text(`Sodium: ${patientTargets.sodium_mg?.toFixed(0) || 0} mg`, 14, nextY + 6);
+        doc.text(`Carbohydrates: ${patientTargets.carbs_g?.toFixed(0) || 0} g`, 14, nextY + 12);
+        doc.text(`Protein: ${patientTargets.protein_g?.toFixed(0) || 0} g`, 100, nextY);
+        doc.text(`Fat: ${patientTargets.fat_g?.toFixed(0) || 0} g`, 100, nextY + 6);
+        doc.text(`Potassium: ${patientTargets.potassium_mg?.toFixed(0) || 0} mg`, 100, nextY + 12);
+        nextY += 20;
+      }
+
+      // AI Summary
+      if (aiSummary && aiSummary !== "Generating AI nutritional summary...") {
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("AI Health Summary", 14, nextY);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        const splitSummary = doc.splitTextToSize(aiSummary, 180);
+        doc.text(splitSummary, 14, nextY + 6);
+        nextY += splitSummary.length * 5 + 10;
+      }
+
+      // Food Logs Table
+      if (patientLogs.length > 0) {
+        const tableData = patientLogs.slice(0, 20).map((log) => {
+          const dStr = log.logged_at.endsWith("Z")
+            ? log.logged_at
+            : log.logged_at + "Z";
+          return [
+            new Date(dStr).toLocaleString(),
+            log.name,
+            `${Number(log.calories_kcal || 0).toFixed(0)} kcal`,
+            `${Number(log.sodium_mg || 0).toFixed(0)} mg`,
+            `${Number(log.carbs_g || 0).toFixed(1)} g`,
+          ];
+        });
+
+        autoTable(doc, {
+          startY: nextY,
+          head: [["Date/Time", "Meal", "Calories", "Sodium", "Carbs"]],
+          body: tableData,
+        });
+      }
+
+      doc.save(`${selectedPatient.full_name}_Health_Summary.pdf`);
+    } catch (e) {
+      console.error("Export failed:", e);
+      setNotify({
+        type: "error",
+        message: "Failed to export PDF",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="clinician-theme">
@@ -551,6 +647,15 @@ const ClinicianDashboard = () => {
                     <span className="text-xs text-on-surface-variant">
                       ({selectedPatient.email})
                     </span>
+                    <Button
+                      onClick={handleExportPDF}
+                      disabled={isExporting}
+                      size="sm"
+                      className="bg-primary text-on-primary hover:bg-primary-container text-xs font-bold px-3 flex items-center gap-1 border-none cursor-pointer ml-2"
+                      title="Export to PDF"
+                    >
+                      <Download className="h-3.5 w-3.5" /> {isExporting ? "Exporting..." : "Export PDF"}
+                    </Button>
                   </div>
                   <Button
                     onClick={() =>
