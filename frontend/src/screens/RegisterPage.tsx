@@ -66,27 +66,17 @@ const RegisterPage: React.FC = () => {
 
     setLoading(true);
     try {
-      if (role === "clinician") {
-        const formData = new FormData();
-        formData.append("full_name", fullName);
-        formData.append("email", email);
-        formData.append("password", password);
-        formData.append("role", role);
-        formData.append("consent_given", String(consent));
-        formData.append("profession", profession);
-        formData.append("prc_number", prcNumber);
-        formData.append("date_of_birth", dateOfBirth);
-        if (prcIdImage) formData.append("prc_id_image", prcIdImage);
-        await register(formData);
-      } else {
-        await register({
-          email,
-          full_name: fullName,
-          role,
-          consent_given: consent,
-          password,
-        });
-      }
+      const formData = new FormData();
+      formData.append("full_name", fullName);
+      formData.append("email", email);
+      formData.append("password", password);
+      formData.append("role", role);
+      formData.append("consent_given", String(consent));
+      formData.append("profession", profession);
+      formData.append("prc_number", prcNumber);
+      formData.append("date_of_birth", dateOfBirth);
+      if (prcIdImage) formData.append("prc_id_image", prcIdImage);
+      await register(formData);
       navigate("/login", {
         state: { success: "Account created successfully! Please log in." },
       });
