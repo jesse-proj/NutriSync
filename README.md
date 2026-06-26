@@ -1,4 +1,4 @@
-# NutriSync RPM
+# NutriSync
 > Remote Patient Monitoring through Nutritional Intelligence for the Philippine Health Context
 
 NutriSync is an AI-powered Remote Patient Monitoring platform designed to bridge the gap between hospital discharge and home recovery for Filipino patients with diet-related chronic diseases.
