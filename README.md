@@ -1,88 +1,74 @@
-# NutriSync
-## Remote Patient Monitoring through Nutritional Intelligence for the Philippine Health Context
+# NutriSync RPM
+> Remote Patient Monitoring through Nutritional Intelligence for the Philippine Health Context
 
 NutriSync is an AI-powered Remote Patient Monitoring platform designed to bridge the gap between hospital discharge and home recovery for Filipino patients with diet-related chronic diseases.
 
-By connecting patients and clinicians directly, the platform makes remote dietary management actionable, collaborative, and culturally intelligent.
+By connecting patients and clinicians directly, the platform makes remote dietary management actionable, collaborative, and culturally intelligent, specifically tailored for Filipino cuisine (e.g., adobo, sinigang, pancit).
 
-### Project Resources
-* **[Product Requirement Document (PRD)](file:///c:/Users/Trevor/Documents/CreateConquer/Create-Conquer/PRD.md):** Detailed product specifications, user personas, MoSCoW prioritization, technical architectures, and roadmap.
+## Key Features
 
-### Project Structure
-* `/frontend`: React + TypeScript application initialized with Vite, Tailwind CSS, and Shadcn UI.
-* `/backend`: Python application powered by FastAPI, set up with Uvicorn, SQLAlchemy, and Pydantic.
+### For Patients
+* **Photo-based Meal Logging**: Upload a photo, and the AI identifies the dish and estimates macronutrients.
+* **Nutritional Tracking**: Daily goal progress tracking for calories, sodium, carbs, protein, and fat.
+* **AI Chatbot ("NutriGabay")**: Context-aware dietary assistant answering questions in Tagalog/Taglish.
 
----
+### For Clinicians
+* **Patient Management**: Patient directory, invite via email, and view compliance status.
+* **Dietary Targets**: Set and adjust macro limits for individual patients.
+* **Exception-based Alerting**: Automatic alerts for dietary violations, inactivity, or declining trends.
+* **Direct Messaging**: Communicate directly with patients via WebSocket chat.
 
-## Vision Provider Configuration
+## Tech Stack
 
-The food image analysis feature supports multiple vision providers. The provider is selected at runtime via the `VISION_PROVIDER` environment variable.
+* **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Shadcn UI
+* **Backend**: Python 3, FastAPI, SQLModel, SQLite
+* **AI Services**: Groq (Vision & Chat), Edamam (Nutrition analysis)
+* **Real-time**: WebSocket (direct chat)
 
-### Available Providers
+## Project Structure
+* `/frontend`: React SPA with patient and clinician dashboards.
+* `/backend`: FastAPI REST API handling auth, logs, targets, and AI integrations.
 
-| Provider | `VISION_PROVIDER` value | Description |
-|----------|------------------------|-------------|
-| **LogMeal** | `logmeal` (default) | Uses the LogMeal API for food segmentation and nutritional analysis. |
-| **Groq** | `groq` (default) | Uses the `meta-llama/llama-4-scout-17b-16e-instruct` model via the Groq SDK. |
+## Setup Instructions
 
-### Environment Variables
+### 1. Backend Setup
 
-Add the following to your `.env` file:
+```bash
+cd backend
+python -m venv env
+# Windows: env\Scripts\activate | Mac/Linux: source env/bin/activate
+pip install -r requirements.txt
+python -m app.main
+# API runs at http://127.0.0.1:8000
+```
+
+### 2. Frontend Setup
+
+```bash
+cd frontend
+npm install
+npm run dev
+# App runs at http://localhost:5173
+```
+
+## Environment Variables
+
+Create a `.env` file in the root or inside the `backend` directory.
 
 ```env
-# Vision provider selection: "groq" (default) or "logmeal"
-VISION_PROVIDER=groq
+SECRET_KEY=your-secret-key
+DATABASE_URL=sqlite:///./nutrisync.db
+# CORS Allowed Origins (comma-separated list for decoupled frontend)
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 
-# Groq API key for the chatbot (existing usage)
+# Groq API keys
 GROQ_API_KEY=your-chatbot-key-here
-
-# Groq API key for the vision model (food image analysis)
 GROQ_API_KEY_TWO=your-vision-key-here
 
-# LogMeal API key (only needed if VISION_PROVIDER=logmeal)
-LOGMEAL_API_KEY=your-logmeal-key-here
+# Edamam Nutrition API
+EDAMAM_APP_ID=your-edamam-app-id-here
+EDAMAM_APP_KEY=your-edamam-app-key-here
 ```
 
-### How It Works
-
-1. The factory function `get_vision_provider()` in `backend/app/services/vision.py` reads `VISION_PROVIDER` from the environment.
-2. Based on the value, it instantiates either `LogMealVisionProvider` or `GroqVisionProvider`.
-3. Both providers implement the `VisionProvider` interface and return data in the same normalized schema.
-4. The `/food/log-photo` endpoint calls `vision.analyze(image_bytes)` without knowing which provider is active.
-
-### Response Schema
-
-Both providers return a response in this shape:
-
-```json
-{
-  "segments": [
-    {
-      "name": "Grilled Chicken",
-      "nutritional_info": {
-        "calories": 165.0,
-        "macronutrients": {
-          "carbohydrates": 0.0,
-          "proteins": 31.0,
-          "fat": 3.6
-        },
-        "micronutrients": {
-          "sodium": 74.0,
-          "potassium": 256.0
-        }
-      }
-    }
-  ]
-}
-```
-
-### Switching Providers
-
-To switch from LogMeal to Groq:
-
-1. Set `VISION_PROVIDER=groq` in your `.env` file.
-2. Ensure `GROQ_API_KEY_TWO` contains a valid Groq API key.
-3. Restart the backend server.
-
-To switch back, set `VISION_PROVIDER=logmeal` or remove the variable (defaults to `logmeal`).
-
+### Project Resources
+* **[Application Overview](APP_OVERVIEW.md):** High-level summary of jrchitecture, schemas, and current implementation status.
