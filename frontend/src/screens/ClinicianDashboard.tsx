@@ -93,6 +93,18 @@ const ClinicianDashboard = () => {
     document.title = "Clinician Dashboard | NutriSync";
   }, []);
 
+  // Profile dropdown click outside handler
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setShowProfileDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // Navigation
   const [activeView, setActiveView] = useState<
     "dashboard" | "patients" | "urgent-tasks" | "messages"
@@ -103,6 +115,7 @@ const ClinicianDashboard = () => {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   // Chat
   const [unreadCounts, setUnreadCounts] = useState<Record<number, number>>({});
@@ -318,8 +331,8 @@ const ClinicianDashboard = () => {
   return (
     <div className="clinician-theme">
       <SidebarProvider defaultOpen={true}>
-        <Sidebar collapsible="icon" variant="sidebar">
-          <SidebarHeader className="py-4 px-3">
+        <Sidebar collapsible="icon" variant="sidebar" className="bg-surface border-r border-outline-variant">
+          <SidebarHeader className="py-4 px-3 bg-surface border-b border-outline-variant">
             <div className="flex items-center gap-2 overflow-hidden">
               <img
                 src={logoBrand}
@@ -335,7 +348,7 @@ const ClinicianDashboard = () => {
             </div>
           </SidebarHeader>
 
-          <SidebarContent>
+          <SidebarContent className="bg-surface">
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
@@ -418,8 +431,8 @@ const ClinicianDashboard = () => {
             </SidebarGroup>
           </SidebarContent>
 
-          <SidebarFooter className="pb-4">
-            <SidebarSeparator className="mx-0 mb-2" />
+          <SidebarFooter className="pb-4 bg-surface border-t border-outline-variant">
+            <SidebarSeparator className="mx-0 mb-2 bg-outline-variant" />
             <SidebarMenu>
 
               <SidebarMenuItem>
@@ -446,58 +459,68 @@ const ClinicianDashboard = () => {
 
         <SidebarInset className="flex flex-col min-h-screen overflow-y-auto bg-background">
           {/* Top Bar */}
-          <header className="sticky top-0 z-40 bg-white border-b border-outline-variant flex items-center justify-between px-6 h-16 shrink-0">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger className="text-on-surface-variant" />
-              <div className="relative max-w-md w-64">
+          <header className="sticky top-0 z-40 bg-white border-b border-outline-variant flex items-center justify-between px-4 lg:px-6 h-14 shrink-0 gap-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <SidebarTrigger className="text-on-surface-variant shrink-0" />
+              <div className="relative hidden sm:block flex-1 max-w-xs">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-outline pointer-events-none" />
                 <Input
                   type="text"
-                  placeholder="Search patients..."
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 rounded-full bg-surface-container-low border-outline-variant focus:border-primary text-sm"
+                  className="pl-10 pr-3 rounded-full bg-surface-container-low border-outline-variant focus:border-primary text-sm h-9"
                 />
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative rounded-full"
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative rounded-full h-8 w-8"
+                title="Notifications"
+              >
+                <Bell className="h-4 w-4 text-on-surface-variant" />
+                {alerts.length > 0 && (
+                  <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-error rounded-full border border-white" />
+                )}
+              </Button>
+              <div className="h-6 w-px bg-outline-variant hidden sm:block" />
+              {/* Profile Dropdown */}
+              <div className="relative" ref={profileDropdownRef}>
+                <button
+                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                  className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity border-none bg-transparent p-0"
+                  title="Profile Menu"
                 >
-                  <Bell className="h-5 w-5 text-on-surface-variant" />
-                  {alerts.length > 0 && (
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-white" />
-                  )}
-                </Button>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Settings className="h-5 w-5 text-on-surface-variant" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={logout}
-                  title="Logout"
-                  className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <LogOut className="h-5 w-5" />
-                </Button>
-              </div>
-              <div className="h-8 w-px bg-outline-variant" />
-              <div className="flex items-center gap-3 cursor-pointer">
-                <div className="text-right hidden sm:block">
-                  <p className="text-sm font-semibold text-on-surface leading-none">
-                    Dr. {user?.full_name ?? "Maria Santos"}
-                  </p>
-                  <p className="text-[11px] text-on-surface-variant">
-                    Cardiology
-                  </p>
-                </div>
-                <div className="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center text-xs font-bold text-on-surface border-2 border-primary/30 shrink-0">
-                  {initials}
-                </div>
+                  <div className="text-right hidden md:block">
+                    <p className="text-sm font-semibold text-on-surface leading-none">
+                      Dr. {user?.full_name?.split(" ")[0] ?? "Dr"}
+                    </p>
+                    <p className="text-[10px] text-on-surface-variant">
+                      Clinician
+                    </p>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-xs font-bold text-on-surface border-2 border-primary/30 shrink-0">
+                    {initials}
+                  </div>
+                </button>
+
+                {showProfileDropdown && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-outline-variant py-2 z-50">
+                    <button
+                      onClick={() => {
+                        setShowProfileDropdown(false);
+                        logout();
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left border-none bg-transparent cursor-pointer"
+                      title="Log Out"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </header>

@@ -1,7 +1,7 @@
 // ponytail: Shared patient navbar component — update once, reflects on all patient screens
 
 import { Link } from "react-router-dom";
-import { Bell, LogOut, Check } from "lucide-react";
+import { Bell, LogOut, Check, User } from "lucide-react";
 import { Button } from "./ui/button";
 import { useAuth } from "../context/AuthContext";
 import logoBrand from "../assets/nutrisync.png";
@@ -19,13 +19,16 @@ const navLinks: { label: string; to: string; page: ActivePage }[] = [
   { label: "Home", to: "/patient/dashboard", page: "dashboard" },
   { label: "Reports", to: "/patient/reports", page: "reports" },
   { label: "Goals", to: "/patient/goals", page: "goals" },
+  { label: "Profile", to: "/patient/profile", page: "profile" },
 ];
 
 const PatientNavbar = ({ activePage }: PatientNavbarProps) => {
   const { user, logout } = useAuth();
   const [alerts, setAlerts] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchAlerts = async () => {
@@ -41,6 +44,9 @@ const PatientNavbar = ({ activePage }: PatientNavbarProps) => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
+      }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setShowProfileDropdown(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -156,33 +162,50 @@ const PatientNavbar = ({ activePage }: PatientNavbarProps) => {
           </div>
 
           <div className="flex items-center gap-3 pl-2 border-l border-outline-variant">
-            {/* Clickable avatar → Profile page */}
-            <Link
-              to="/patient/profile"
-              className="flex items-center gap-3 rounded-lg p-1 hover:bg-surface-container transition-all"
-              title="Go to Profile"
-            >
-              <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-primary shrink-0">
-                <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                  {user?.full_name?.charAt(0) || "U"}
+            {/* Profile dropdown menu */}
+            <div className="relative" ref={profileDropdownRef}>
+              <button
+                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                className="flex items-center gap-3 rounded-lg p-1 hover:bg-surface-container transition-all cursor-pointer border-none bg-transparent"
+                title="Profile Menu"
+              >
+                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-primary shrink-0">
+                  <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                    {user?.full_name?.charAt(0) || "U"}
+                  </div>
                 </div>
-              </div>
-              <div className="hidden sm:block text-left">
-                <p className="text-xs text-on-surface font-semibold">
-                  {user?.full_name}
-                </p>
-                <p className="text-[10px] text-on-surface-variant">Patient</p>
-              </div>
-            </Link>
+                <div className="hidden sm:block text-left">
+                  <p className="text-xs text-on-surface font-semibold">
+                    {user?.full_name}
+                  </p>
+                  <p className="text-[10px] text-on-surface-variant">Patient</p>
+                </div>
+              </button>
 
-            <Button
-              onClick={logout}
-              variant="ghost"
-              className="p-2 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors ml-1"
-              title="Log Out"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
+              {showProfileDropdown && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-outline-variant py-2 z-50">
+                  <Link
+                    to="/patient/profile"
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-on-surface hover:bg-surface-container-lowest transition-colors text-left"
+                    onClick={() => setShowProfileDropdown(false)}
+                  >
+                    <User className="h-4 w-4" />
+                    <span>View Profile</span>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setShowProfileDropdown(false);
+                      logout();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left border-none bg-transparent cursor-pointer"
+                    title="Log Out"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>
