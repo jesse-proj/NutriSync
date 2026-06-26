@@ -1,5 +1,5 @@
 # Product Requirement Document (PRD)
-## Project Name: NutriSync RPM
+## Project Name: NutriSync
 ### Remote Patient Monitoring through Nutritional Intelligence
 
 ---
@@ -8,7 +8,7 @@
 
 ### 1.1 Elevator Pitch
 > [!NOTE]
-> **NutriSync RPM** is an AI-powered Remote Patient Monitoring platform that bridges the gap between hospital discharge and home recovery for Filipino patients with diet-related chronic diseases—connecting patients and clinicians through intelligent, photo-based nutritional tracking built specifically for the Philippine health context.
+> **NutriSync** is an AI-powered Remote Patient Monitoring platform that bridges the gap between hospital discharge and home recovery for Filipino patients with diet-related chronic diseases—connecting patients and clinicians through intelligent, photo-based nutritional tracking built specifically for the Philippine health context.
 
 ### 1.2 The Problem
 In the Philippines, diet-related chronic illnesses (such as cardiovascular diseases, Stage II hypertension, Type 2 diabetes, and Chronic Kidney Disease) are leading causes of mortality. When patients are discharged from hospitals, they are given complex dietary prescriptions (e.g., "low sodium, low potassium, renal diet") which fail in practice due to:
