@@ -5,6 +5,10 @@ NutriSync is an AI-powered Remote Patient Monitoring platform designed to bridge
 
 By connecting patients and clinicians directly, the platform makes remote dietary management actionable, collaborative, and culturally intelligent, specifically tailored for Filipino cuisine (e.g., adobo, sinigang, pancit).
 
+![screenshots/PC.png](PC NutriSync)
+
+![screenshots/MOBILE.png](PC NutriSync)
+
 ## Key Features
 
 ### For Patients
